@@ -1,0 +1,7 @@
+# pipeline dummy for testing purposes
+
+pipelines:
+  default:
+    - step:
+        script:
+          - echo "I'm active!"
