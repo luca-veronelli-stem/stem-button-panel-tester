@@ -193,7 +193,7 @@ namespace GUI.Windows.Presenters
                 _view.ShowProgress("Preparazione battezzamento e impostazione indirizzo del dispositivo...");
                 _view.SetBaptizeStatus(BaptizeStatus.InProgress);
 
-                var reassign = await _service.ReassignAddressAsync(panelType, 5000, _cts.Token).ConfigureAwait(false);
+                var reassign = await _service.ReassignAddressAsync(panelType, cancellationToken: _cts.Token).ConfigureAwait(false);
                 if (reassign.Success)
                 {
                     _view.ShowProgress($"Dispositivo impostato a 0x{reassign.AssignedAddress:X8}");

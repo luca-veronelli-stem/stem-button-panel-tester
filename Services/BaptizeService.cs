@@ -87,8 +87,8 @@ namespace Services
                     return CreateFailureResult(channelResult.Error.ToString());
                 }
 
-                // 2. Configura comunicazione in broadcast
-                ConfigureBroadcastCommunication();
+                // 2. Configura comunicazione per pulsantiera vergine (0x1FFFFFFF)
+                ConfigureVirginPanelCommunication();
 
                 // 3. Ottieni configurazione per il tipo di pannello
                 var config = PanelTypeConfiguration.GetConfiguration(panelType);
@@ -171,11 +171,15 @@ namespace Services
             return result;
         }
 
-        private void ConfigureBroadcastCommunication()
+        /// <summary>
+        /// Configura la comunicazione per dispositivi vergini (post-riprogrammazione).
+        /// Usa l'indirizzo 0x1FFFFFFF su cui le pulsantiere vergini ascoltano.
+        /// </summary>
+        private void ConfigureVirginPanelCommunication()
         {
-            _communicationService.SetSenderRecipientIds(ProtocolConstants.ComputerSenderId, ProtocolConstants.BroadcastId);
-            _logger.LogInformation("IDs configurati: SenderId=0x{SenderId:X8}, RecipientId=0x{RecipientId:X8}",
-                ProtocolConstants.ComputerSenderId, ProtocolConstants.BroadcastId);
+            _communicationService.SetSenderRecipientIds(ProtocolConstants.ComputerSenderId, ProtocolConstants.VirginPanelId);
+            _logger.LogInformation("IDs configurati per pulsantiera vergine: SenderId=0x{SenderId:X8}, RecipientId=0x{RecipientId:X8}",
+                ProtocolConstants.ComputerSenderId, ProtocolConstants.VirginPanelId);
         }
 
         private async Task<WhoAmIResponse?> SendWhoAreYouAsync(

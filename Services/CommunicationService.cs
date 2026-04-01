@@ -3,6 +3,7 @@ using Core.Interfaces.Communication;
 using Core.Interfaces.Services;
 using Core.Models;
 using Core.Results;
+using Services.Models;
 
 namespace Services
 {
@@ -104,7 +105,7 @@ namespace Services
             byte[] payload,
             bool waitAnswer,
             Func<byte[], bool>? responseValidator = null,
-            int timeoutMs = 5000,
+            int timeoutMs = ProtocolConstants.DefaultTimeoutMs,
             CancellationToken cancellationToken = default)
         {
             if (_disposed)

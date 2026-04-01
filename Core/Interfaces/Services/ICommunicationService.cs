@@ -39,7 +39,7 @@ namespace Core.Interfaces.Services
             byte[] payload,
             bool waitAnswer,
             Func<byte[], bool>? responseValidator = null,
-            int timeoutMs = 5000,
+            int timeoutMs = 15000, // Default 15 secondi per gestire auto-reset pulsantiere
             CancellationToken cancellationToken = default);
 
         /// <summary>

@@ -32,7 +32,8 @@ namespace Services.Models
         // - CAN Arbitration ID: identifica il destinatario del messaggio
         // - Transport SenderId: identifica il mittente logico nel pacchetto
         public const uint ComputerSenderId = 0x00030141;  // Eden madre - SenderId del computer
-        public const uint BroadcastId = 0xFFFFFFFF;       // Broadcast per dispositivi non battezzati
+        public const uint VirginPanelId = 0x1FFFFFFF;     // Indirizzo pulsantiere post-riprogrammazione (vergini)
+        public const uint BroadcastId = 0xFFFFFFFF;       // Broadcast generico (non usato per battezzamento)
         public const uint PanelListenId = 0x0000013F;     // Arbitration ID su cui la pulsantiera ascolta
         public const uint PanelTransmitId = 0x00000101;   // Arbitration ID su cui la pulsantiera trasmette
 
@@ -41,7 +42,7 @@ namespace Services.Models
         public const byte NoResetFlag = 0x00;
 
         // Timeouts
-        public const int DefaultTimeoutMs = 5000;
+        public const int DefaultTimeoutMs = 15000;  // Aumentato per pulsantiere già battezzate che devono fare auto-reset (~5-6 sec)
         public const int VerificationTimeoutMs = 2000;
         public const int CommandDelayMs = 100;
         public const int DeviceReconfigurationDelayMs = 500;

@@ -66,7 +66,7 @@ namespace Core.Interfaces.Services
         /// <returns>Risultato del battezzamento.</returns>
         Task<BaptizeResult> BaptizeDeviceAsync(
             ButtonPanelType panelType,
-            int timeoutMs = 5000,
+            int timeoutMs = 15000,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -76,7 +76,7 @@ namespace Core.Interfaces.Services
         /// <param name="cancellationToken">Token per la cancellazione.</param>
         /// <returns>Lista degli indirizzi MAC dei dispositivi trovati.</returns>
         Task<List<byte[]>> ScanForUnbaptizedDevicesAsync(
-            int timeoutMs = 5000,
+            int timeoutMs = 15000,
             CancellationToken cancellationToken = default);
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace Core.Interfaces.Services
         /// </summary>
         Task<BaptizeResult> ReassignAddressAsync(
             ButtonPanelType panelType,
-            int timeoutMs = 5000,
+            int timeoutMs = 15000,
             CancellationToken cancellationToken = default,
             bool forceLastByteToFF = false);
 

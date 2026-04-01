@@ -16,9 +16,9 @@ namespace Core.Models.Services
         /// <summary>
         /// Variable IDs that can be used by this panel to report button status.
         /// Format: high byte + low byte (e.g., 0x803E means bytes 0x80, 0x3E in the payload).
-        /// Button panels can use either 0x8000 or 0x803E to report button presses.
+        /// Button panels can use 0x8000, 0x803E, or 0x80FE (used by virgin/unbaptized panels).
         /// </summary>
-        public ushort[] ButtonStatusVariableIds { get; set; } = [0x8000, 0x803E];
+        public ushort[] ButtonStatusVariableIds { get; set; } = [0x8000, 0x803E, 0x80FE];
 
         // Metodo factory per creare una pulsantiera in base al tipo
         public static ButtonPanel GetByType(ButtonPanelType type)
@@ -33,7 +33,7 @@ namespace Core.Models.Services
                     HasLed = false,
                     Buttons = GetButtonsByType(type),
                     ButtonMasks = [0x04, 0x10, 0x02, 0x20],
-                    ButtonStatusVariableIds = [0x8000, 0x803E] // Can use either variable ID
+                    ButtonStatusVariableIds = [0x8000, 0x803E, 0x80FE] // 0x80FE usato da pulsantiere vergini
                 },
                 // DIS0026166 (R3 LXP) - uses different button status variable ID
                 ButtonPanelType.DIS0026166 => new ButtonPanel
@@ -43,7 +43,7 @@ namespace Core.Models.Services
                     HasLed = true,
                     Buttons = GetButtonsByType(type),
                     ButtonMasks = [0x40, 0x04, 0x08, 0x10, 0x80, 0x02, 0x01, 0x20],
-                    ButtonStatusVariableIds = [0x8000, 0x803E] // Can use either variable ID
+                    ButtonStatusVariableIds = [0x8000, 0x803E, 0x80FE] // 0x80FE usato da pulsantiere vergini
                 },
                 // DIS0026182 (R3 LXP+) - likely uses same as R3 LXP
                 ButtonPanelType.DIS0026182 => new ButtonPanel
@@ -53,7 +53,7 @@ namespace Core.Models.Services
                     HasLed = true,
                     Buttons = GetButtonsByType(type),
                     ButtonMasks = [0x40, 0x04, 0x08, 0x10, 0x80, 0x02, 0x01, 0x20],
-                    ButtonStatusVariableIds = [0x8000, 0x803E] // Can use either variable ID
+                    ButtonStatusVariableIds = [0x8000, 0x803E, 0x80FE] // 0x80FE usato da pulsantiere vergini
                 },
                 // Le altre pulsantiere (Eden) hanno tutte 8 pulsanti con LED
                 _ => new ButtonPanel
@@ -63,7 +63,7 @@ namespace Core.Models.Services
                     HasLed = true,
                     Buttons = GetButtonsByType(type),
                     ButtonMasks = [0x40, 0x04, 0x08, 0x10, 0x80, 0x02, 0x01, 0x20],
-                    ButtonStatusVariableIds = [0x8000, 0x803E] // Can use either variable ID
+                    ButtonStatusVariableIds = [0x8000, 0x803E, 0x80FE] // 0x80FE usato da pulsantiere vergini
                 }
             };
         }
