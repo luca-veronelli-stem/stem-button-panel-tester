@@ -1,5 +1,5 @@
 # =============================================================================
-# Bitbucket Pipelines - Stem.Production.Tracker
+# Bitbucket Pipelines - Stem.ButtonPanel.Tester
 # =============================================================================
 
 image: mcr.microsoft.com/dotnet/sdk:10.0
@@ -24,10 +24,14 @@ pipelines:
         caches:
           - dotnetcore
         script:
-          # Build
+          # Build (cross-compile per Windows su Linux)
           - dotnet build Stem.ButtonPanel.Tester.slnx --configuration Release -p:EnableWindowsTargeting=true
-          # Test
+          # Test - escludi test che richiedono hardware/Windows
+          # Categorie eseguite: Unit, Integration, EndToEnd (tutti mockano hardware)
+          # Categorie escluse: RequiresHardware, RequiresWindows
           - dotnet test Tests/Tests.csproj --framework net10.0 --no-build --configuration Release 
-              --logger "trx;LogFileName=results.trx" --filter "FullyQualifiedName!~ReadingLoop_UsesConfiguredPollInterval" --results-directory ./test-reports
+              --logger "trx;LogFileName=results.trx"
+              --filter "Category!=RequiresHardware&Category!=RequiresWindows"
+              --results-directory ./test-reports
         artifacts:
           - test-reports/**
