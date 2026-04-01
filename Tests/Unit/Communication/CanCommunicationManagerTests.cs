@@ -211,14 +211,14 @@ namespace Tests.Unit.Communication
             // Arrange
             byte[] data = [0x01, 0x02, 0x03];
             uint arbitrationId = 0x123;
-            _mockAdapter.Setup(a => a.Send(arbitrationId, data, false)).ReturnsAsync(true);
+            _mockAdapter.Setup(a => a.Send(arbitrationId, data, true)).ReturnsAsync(true);
 
             // Act
             bool result = await _manager.SendAsync(data, arbitrationId);
 
             // Assert
             Assert.True(result);
-            _mockAdapter.Verify(a => a.Send(arbitrationId, data, false), Times.Once);
+            _mockAdapter.Verify(a => a.Send(arbitrationId, data, true), Times.Once);
         }
 
         [Fact]
@@ -235,18 +235,19 @@ namespace Tests.Unit.Communication
         }
 
         [Fact]
-        public async Task SendAsync_StandardId_SetsExtendedFalse()
+        public async Task SendAsync_StandardId_AlwaysUsesExtended()
         {
             // Arrange
             byte[] data = [0x01];
             uint standardId = 0x7FF; // Maximum standard ID (11 bits)
-            _mockAdapter.Setup(a => a.Send(standardId, data, false)).ReturnsAsync(true);
+            // Il protocollo STEM usa SEMPRE Extended ID, anche per ID < 0x7FF
+            _mockAdapter.Setup(a => a.Send(standardId, data, true)).ReturnsAsync(true);
 
             // Act
             await _manager.SendAsync(data, standardId);
 
-            // Assert - Extended flag should be false for standard IDs
-            _mockAdapter.Verify(a => a.Send(standardId, data, false), Times.Once);
+            // Assert - Extended flag always true per protocollo STEM
+            _mockAdapter.Verify(a => a.Send(standardId, data, true), Times.Once);
         }
 
         [Fact]
@@ -285,7 +286,7 @@ namespace Tests.Unit.Communication
             // Arrange
             byte[] data = [0x01];
             uint arbitrationId = 0x123;
-            _mockAdapter.Setup(a => a.Send(arbitrationId, data, false)).ReturnsAsync(false);
+            _mockAdapter.Setup(a => a.Send(arbitrationId, data, true)).ReturnsAsync(false);
 
             // Act
             bool result = await _manager.SendAsync(data, arbitrationId);
@@ -300,7 +301,7 @@ namespace Tests.Unit.Communication
             // Arrange
             byte[] data = [];
             uint arbitrationId = 0x123;
-            _mockAdapter.Setup(a => a.Send(arbitrationId, data, false)).ReturnsAsync(true);
+            _mockAdapter.Setup(a => a.Send(arbitrationId, data, true)).ReturnsAsync(true);
 
             // Act
             bool result = await _manager.SendAsync(data, arbitrationId);
@@ -315,7 +316,7 @@ namespace Tests.Unit.Communication
             // Arrange
             byte[] data = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08]; // 8 bytes
             uint arbitrationId = 0x123;
-            _mockAdapter.Setup(a => a.Send(arbitrationId, data, false)).ReturnsAsync(true);
+            _mockAdapter.Setup(a => a.Send(arbitrationId, data, true)).ReturnsAsync(true);
 
             // Act
             bool result = await _manager.SendAsync(data, arbitrationId);
