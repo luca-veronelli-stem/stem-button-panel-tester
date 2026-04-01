@@ -1,4 +1,15 @@
 <Solution>
+  <Folder Name="/.copilot/">
+    <File Path=".copilot/copilot-instructions.md" />
+    <File Path=".copilot/sample-instructions.md" />
+  </Folder>
+  <Folder Name="/.copilot/agents/">
+    <File Path=".copilot/agents/coding-agent.md" />
+    <File Path=".copilot/agents/docs-agent.md" />
+    <File Path=".copilot/agents/formal-spec-agent.md" />
+    <File Path=".copilot/agents/issues-agent.md" />
+    <File Path=".copilot/agents/test-agent.md" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
