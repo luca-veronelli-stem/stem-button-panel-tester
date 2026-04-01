@@ -18,4 +18,10 @@
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="Communication/Communication.csproj" />
+  <Project Path="Core/Core.csproj" />
+  <Project Path="Data/Data.csproj" />
+  <Project Path="Infrastructure/Infrastructure.csproj" />
+  <Project Path="Services/Services.csproj" />
+  <Project Path="Tests/Tests.csproj" />
 </Solution>
