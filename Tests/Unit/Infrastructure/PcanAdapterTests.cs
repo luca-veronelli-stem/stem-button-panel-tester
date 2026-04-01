@@ -1125,7 +1125,7 @@ namespace Tests.Unit.Infrastructure
                 x => x.Log(
                     LogLevel.Error,
                     It.IsAny<EventId>(),
-                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("failed")),
+                    It.Is<It.IsAnyType>((v, t) => v.ToString()!.Contains("FAILED")),
                     null,
                     It.IsAny<Func<It.IsAnyType, Exception?, string>>()),
                 Times.AtLeastOnce);
