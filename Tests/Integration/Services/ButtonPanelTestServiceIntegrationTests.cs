@@ -14,6 +14,7 @@ namespace Tests.Integration.Services
     /// These tests use the real ButtonPanelTestService, CommunicationService, and StemProtocolManager
     /// with a simulated in-memory communication manager that generates proper protocol responses.
     /// </summary>
+    [Trait("Category", TestCategories.Integration)]
     public class ButtonPanelTestServiceIntegrationTests : IDisposable
     {
         private readonly SimulatedCommunicationManager _simulatedManager;
@@ -43,6 +44,7 @@ namespace Tests.Integration.Services
         public void Dispose()
         {
             _simulatedManager.Dispose();
+            GC.SuppressFinalize(this);
         }
 
         #region Full Test Workflow Integration Tests
@@ -66,28 +68,28 @@ namespace Tests.Integration.Services
             var buttonStartCalls = new List<int>();
             var buttonResultCalls = new List<(int index, bool passed)>();
 
-            Func<string, Task> userPrompt = msg =>
+            Task userPrompt(string msg)
             {
                 promptMessages.Add(msg);
                 return Task.CompletedTask;
-            };
+            }
 
-            Func<string, Task<bool>> userConfirm = msg =>
+            Task<bool> userConfirm(string msg)
             {
                 confirmMessages.Add(msg);
                 return Task.FromResult(true);
-            };
+            }
 
-            Action<int> onButtonStart = i => buttonStartCalls.Add(i);
-            Action<int, bool> onButtonResult = (i, passed) => buttonResultCalls.Add((i, passed));
+            void onButtonStart(int i) => buttonStartCalls.Add(i);
+            void onButtonResult(int i, bool passed) => buttonResultCalls.Add((i, passed));
 
             // Act
             var results = await _sut.TestAllAsync(
                 panelType,
-                userConfirm,
-                userPrompt,
-                onButtonStart,
-                onButtonResult);
+userConfirm,
+userPrompt,
+onButtonStart,
+onButtonResult);
 
             // Assert
             Assert.NotNull(results);
@@ -128,13 +130,13 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
 
             var confirmMessages = new List<string>();
-            Func<string, Task<bool>> userConfirm = msg =>
+            Task<bool> userConfirm(string msg)
             {
                 confirmMessages.Add(msg);
                 return Task.FromResult(true);
-            };
+            }
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
@@ -160,21 +162,21 @@ namespace Tests.Integration.Services
             using var cts = new CancellationTokenSource();
 
             int promptCount = 0;
-            Func<string, Task> userPrompt = _ =>
+            Task userPrompt(string _)
             {
                 promptCount++;
                 if (promptCount >= 2)
                     cts.Cancel();
                 return Task.CompletedTask;
-            };
+            }
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(
                 panelType,
-                userConfirm,
-                userPrompt,
+userConfirm,
+userPrompt,
                 null,
                 null,
                 cts.Token);
@@ -200,7 +202,7 @@ namespace Tests.Integration.Services
             using var cts = new CancellationTokenSource();
             int confirmCount = 0;
 
-            Func<string, Task<bool>> userConfirm = _ =>
+            Task<bool> userConfirm(string _)
             {
                 confirmCount++;
                 if (confirmCount >= 2)
@@ -209,15 +211,15 @@ namespace Tests.Integration.Services
                     throw new OperationCanceledException(cts.Token);
                 }
                 return Task.FromResult(true);
-            };
+            }
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(
                 panelType,
-                userConfirm,
-                userPrompt,
+userConfirm,
+userPrompt,
                 null,
                 null,
                 cts.Token);
@@ -248,10 +250,10 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager, skipButtonIndices: [2]);
 
             var buttonResults = new List<(int index, bool passed)>();
-            Action<int, bool> onButtonResult = (i, p) => buttonResults.Add((i, p));
+            void onButtonResult(int i, bool p) => buttonResults.Add((i, p));
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            Task userPrompt(string _) => Task.CompletedTask;
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
@@ -261,8 +263,8 @@ namespace Tests.Integration.Services
             Assert.False(buttonResult.Passed);
             Assert.Contains("FALLITO", buttonResult.Message);
 
-            var failedButton = buttonResults.FirstOrDefault(r => r.index == 2);
-            Assert.False(failedButton.passed);
+            var (index, passed) = buttonResults.FirstOrDefault(r => r.index == 2);
+            Assert.False(passed);
         }
 
         /// <summary>
@@ -279,10 +281,10 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager, skipButtonIndices: [1, 5]);
 
             var buttonResults = new List<(int index, bool passed)>();
-            Action<int, bool> onButtonResult = (i, p) => buttonResults.Add((i, p));
+            void onButtonResult(int i, bool p) => buttonResults.Add((i, p));
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            Task userPrompt(string _) => Task.CompletedTask;
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
@@ -315,10 +317,10 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
 
             var buttonResults = new List<(int index, bool passed)>();
-            Action<int, bool> onButtonResult = (i, p) => buttonResults.Add((i, p));
+            void onButtonResult(int i, bool p) => buttonResults.Add((i, p));
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            Task userPrompt(string _) => Task.CompletedTask;
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
@@ -346,15 +348,15 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
 
             int confirmCount = 0;
-            Func<string, Task<bool>> userConfirm = _ =>
+            Task<bool> userConfirm(string _)
             {
                 confirmCount++;
                 // Fail confirmations 2 and 4 (green off and red off)
                 // First 5 confirmations are for LED, 6th is for buzzer
                 return Task.FromResult(confirmCount != 2 && confirmCount != 4);
-            };
+            }
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
@@ -383,7 +385,7 @@ namespace Tests.Integration.Services
             var panel = ButtonPanel.GetByType(panelType);
             Assert.False(panel.HasLed);
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act - call TestLedAsync directly (doesn't require channel setup)
             var result = await _sut.TestLedAsync(panelType, userConfirm);
@@ -412,8 +414,8 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
             _sut.SetProtocolRepository(newRepository);
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
+            static Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
@@ -440,8 +442,8 @@ namespace Tests.Integration.Services
             // Configure manager to fail connection
             _simulatedManager.FailConnection = true;
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
+            static Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
@@ -470,8 +472,8 @@ namespace Tests.Integration.Services
                 ButtonPanelType.DIS0025205
             };
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            static Task userPrompt(string _) => Task.CompletedTask;
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
             var allResults = new List<List<ButtonPanelTestResult>>();
@@ -514,13 +516,13 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
 
             int confirmCount = 0;
-            Func<string, Task<bool>> userConfirm = _ =>
+            Task<bool> userConfirm(string _)
             {
                 confirmCount++;
                 return Task.FromResult(true);
-            };
+            }
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
@@ -554,10 +556,10 @@ namespace Tests.Integration.Services
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
 
             var buttonResults = new List<(int index, bool passed)>();
-            Action<int, bool> onButtonResult = (i, p) => buttonResults.Add((i, p));
+            void onButtonResult(int i, bool p) => buttonResults.Add((i, p));
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            Task userPrompt(string _) => Task.CompletedTask;
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
@@ -589,18 +591,20 @@ namespace Tests.Integration.Services
             add => _packetReceivedHandler += value;
             remove => _packetReceivedHandler -= value;
         }
+#pragma warning disable CS0067 // Evento richiesto dall'interfaccia ma non utilizzato nel simulatore
         public event Action<uint, byte[]>? RawPacketReceived;
+#pragma warning restore CS0067
 
         public int MaxPacketSize => 8;
         public bool IsConnected { get; private set; }
         public bool FailConnection { get; set; }
 
-        public List<byte[]> SentPackets { get; } = new();
+        public List<byte[]> SentPackets { get; } = [];
 
         private ButtonPanel? _simulatedPanel;
         private int _currentButtonIndex;
-        private HashSet<int> _skipButtonIndices = new();
-        private readonly object _lockObj = new();
+        private HashSet<int> _skipButtonIndices = [];
+        private readonly Lock _lockObj = new();
         private static int _packetId = 1;
 
         /// <summary>
@@ -610,7 +614,7 @@ namespace Tests.Integration.Services
         {
             _simulatedPanel = panel;
             _currentButtonIndex = 0;
-            _skipButtonIndices = skipButtonIndices?.ToHashSet() ?? new HashSet<int>();
+            _skipButtonIndices = skipButtonIndices?.ToHashSet() ?? [];
             _buttonSimulationCts = new CancellationTokenSource();
 
             // Start button simulation in background
@@ -654,7 +658,7 @@ namespace Tests.Integration.Services
         {
             if (!IsConnected) return Task.FromResult(false);
 
-            SentPackets.Add(data.ToArray());
+            SentPackets.Add([.. data]);
 
             // Always simulate a response for commands
             _ = Task.Run(async () =>
@@ -776,7 +780,7 @@ namespace Tests.Integration.Services
             rawPacket.AddRange(netInfoBytes);
             rawPacket.AddRange(transportPacket);
 
-            return rawPacket.ToArray();
+            return [.. rawPacket];
         }
 
         private static byte[] ToLittleEndianBytes(ushort value) =>

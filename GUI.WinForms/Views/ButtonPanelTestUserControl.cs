@@ -84,7 +84,7 @@ namespace GUI.Windows.Views
                 CreateSelectPanelButtons();
 
                 // Popola il pannello con i pulsanti per selezionare il tipo di collaudo
-                ButtonPanelTestType[] testTypes = [.. Enum.GetValues(typeof(ButtonPanelTestType)).Cast<ButtonPanelTestType>()];
+                ButtonPanelTestType[] testTypes = [.. Enum.GetValues<ButtonPanelTestType>().Cast<ButtonPanelTestType>()];
                 CreateSelectTestButtons(testTypes);
 
                 // Associa i gestori agli eventi di click
@@ -106,7 +106,7 @@ namespace GUI.Windows.Views
         // Metodo per creare dinamicamente i toggle buttons di selezione pulsantiera
         private void CreateSelectPanelButtons()
         {
-            ButtonPanelType[] buttonPaneltypes = [.. Enum.GetValues(typeof(ButtonPanelType)).Cast<ButtonPanelType>()];
+            ButtonPanelType[] buttonPaneltypes = [.. Enum.GetValues<ButtonPanelType>().Cast<ButtonPanelType>()];
             int buttonHeight = 150;
             int spacing = 10;
 
@@ -284,7 +284,7 @@ namespace GUI.Windows.Views
         private static ButtonPanelTestType[] GetAvailableTests(ButtonPanelType panelType)
         {
             ButtonPanel panel = ButtonPanel.GetByType(panelType);
-            List<ButtonPanelTestType> availableTestTypes = [.. Enum.GetValues(typeof(ButtonPanelTestType)).Cast<ButtonPanelTestType>()];
+            List<ButtonPanelTestType> availableTestTypes = [.. Enum.GetValues<ButtonPanelTestType>().Cast<ButtonPanelTestType>()];
 
             // Rimuovi Led se non supportato
             if (!panel.HasLed)
@@ -331,7 +331,7 @@ namespace GUI.Windows.Views
                 {
                     using var ms = new System.IO.MemoryStream(imgBytes);
                     // Dispose previous image to avoid file/handle locks
-                    if (pictureBoxImage.Image != null) pictureBoxImage.Image.Dispose();
+                    pictureBoxImage.Image?.Dispose();
                     pictureBoxImage.Image = Image.FromStream(ms);
                 }
                 else
@@ -340,7 +340,7 @@ namespace GUI.Windows.Views
                     var filePath = System.IO.Path.Combine(AppContext.BaseDirectory, "images", "ButtonPanels", $"{panelType}.jpg");
                     if (System.IO.File.Exists(filePath))
                     {
-                        if (pictureBoxImage.Image != null) pictureBoxImage.Image.Dispose();
+                        pictureBoxImage.Image?.Dispose();
                         pictureBoxImage.Image = Image.FromFile(filePath);
                     }
                     else
@@ -553,11 +553,11 @@ namespace GUI.Windows.Views
                     richTextBoxTestResult.AppendText($"Risultati collaudo pulsantiera [{results[0].PanelType}]" + Environment.NewLine);
 
                     // Mostra UUID se disponibile
-                    if (results[0].DeviceUuid != null && results[0].DeviceUuid.Length == 12)
+                    if (results[0].DeviceUuid is { Length: 12 } uuid)
                     {
                         richTextBoxTestResult.AppendText("UUID Dispositivo: ");
                         richTextBoxTestResult.SelectionColor = Color.Cyan;
-                        richTextBoxTestResult.AppendText(BitConverter.ToString(results[0].DeviceUuid));
+                        richTextBoxTestResult.AppendText(BitConverter.ToString(uuid));
                         richTextBoxTestResult.SelectionColor = richTextBoxTestResult.ForeColor;
                         richTextBoxTestResult.AppendText(Environment.NewLine);
                     }
@@ -690,7 +690,7 @@ namespace GUI.Windows.Views
         {
             string? filePath = null;
 
-            Thread staThread = new Thread(() =>
+            Thread staThread = new(() =>
             {
                 using SaveFileDialog sfd = new();
                 sfd.Filter = "File di testo (*.txt)|*.txt|Tutti i file (*.*)|*.*";
@@ -716,7 +716,7 @@ namespace GUI.Windows.Views
         {
             string? filePath = null;
 
-            Thread staThread = new Thread(() =>
+            Thread staThread = new(() =>
             {
                 using OpenFileDialog ofd = new();
                 ofd.Filter = "File di testo (*.txt)|*.txt|Tutti i file (*.*)|*.*";

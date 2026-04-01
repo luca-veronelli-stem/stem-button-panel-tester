@@ -18,6 +18,7 @@ namespace Tests.Unit.Infrastructure
     /// in scenari di connessione, disconnessione, invio e ricezione messaggi,
     /// gestione degli errori e logging.
     /// </remarks>
+    [Trait("Category", TestCategories.Unit)]
     public class PcanAdapterTests : IAsyncLifetime
     {
         private readonly Mock<IPcanApi> _mockApi;

@@ -8,6 +8,7 @@ namespace Tests.Integration.Data
     /// Integration tests for ExcelStemProtocolRepository.
     /// These tests verify data fetching from a real Excel file.
     /// </summary>
+    [Trait("Category", TestCategories.Integration)]
     public class ExcelStemProtocolRepositoryIntegrationTests
     {
         private const uint TestRecipientId = 0x00030101;

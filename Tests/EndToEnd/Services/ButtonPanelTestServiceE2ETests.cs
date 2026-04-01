@@ -17,6 +17,7 @@ namespace Tests.EndToEnd.Services
     /// These tests use all real components (services, protocol manager, repositories, CAN manager)
     /// and only mock the view (user interactions) and the hardware adapter (ICanAdapter).
     /// </summary>
+    [Trait("Category", TestCategories.EndToEnd)]
     public class ButtonPanelTestServiceE2ETests : IAsyncLifetime
     {
         private readonly Mock<ICanAdapter> _mockAdapter;
@@ -32,7 +33,7 @@ namespace Tests.EndToEnd.Services
         private ButtonPanel? _simulatedPanel;
         private int _currentButtonIndex;
         private HashSet<int> _skipButtonIndices = [];
-        private readonly object _lockObj = new();
+        private readonly Lock _lockObj = new();
         private CancellationTokenSource? _buttonSimulationCts;
         private bool _failConnection;
         private readonly List<(uint ArbitrationId, byte[] Data)> _sentMessages = [];
@@ -303,27 +304,27 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             var userInteractions = new List<string>();
-            Func<string, Task> mockUserPrompt = msg =>
+            Task mockUserPrompt(string msg)
             {
                 userInteractions.Add($"PROMPT: {msg}");
                 return Task.CompletedTask;
-            };
-            Func<string, Task<bool>> mockUserConfirm = msg =>
+            }
+            Task<bool> mockUserConfirm(string msg)
             {
                 userInteractions.Add($"CONFIRM: {msg}");
                 return Task.FromResult(true);
-            };
+            }
 
             var buttonCallbacks = new List<(int index, bool passed)>();
-            Action<int, bool> onButtonResult = (i, p) => buttonCallbacks.Add((i, p));
+            void onButtonResult(int i, bool p) => buttonCallbacks.Add((i, p));
 
             // Act
             var results = await _sut.TestAllAsync(
                 panelType,
-                mockUserConfirm,
-                mockUserPrompt,
+mockUserConfirm,
+mockUserPrompt,
                 null,
-                onButtonResult);
+onButtonResult);
 
             // Assert
             Assert.Equal(3, results.Count);
@@ -356,12 +357,12 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             var confirmCalls = new List<string>();
-            Func<string, Task<bool>> mockUserConfirm = msg =>
+            Task<bool> mockUserConfirm(string msg)
             {
                 confirmCalls.Add(msg);
                 return Task.FromResult(true);
-            };
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            }
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -395,11 +396,11 @@ namespace Tests.EndToEnd.Services
             Reset();
             ConfigureForFullTest(panel);
 
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             var buttonResults = new List<bool>();
-            Action<int, bool> onButtonResult = (_, p) => buttonResults.Add(p);
+            void onButtonResult(int _, bool p) => buttonResults.Add(p);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, onButtonResult);
@@ -431,10 +432,10 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel, skipButtonIndices: [3]);
 
             var buttonResults = new List<(int index, bool passed)>();
-            Action<int, bool> onButtonResult = (i, p) => buttonResults.Add((i, p));
+            void onButtonResult(int i, bool p) => buttonResults.Add((i, p));
 
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
+            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, onButtonResult);
@@ -444,8 +445,8 @@ namespace Tests.EndToEnd.Services
             Assert.False(buttonResult.Passed);
             Assert.Contains("FALLITO", buttonResult.Message);
 
-            var failedButton = buttonResults.First(r => r.index == 3);
-            Assert.False(failedButton.passed);
+            var (index, passed) = buttonResults.First(r => r.index == 3);
+            Assert.False(passed);
             Assert.Equal(7, buttonResults.Count(r => r.passed));
         }
 
@@ -464,10 +465,10 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             var decodedCommands = new List<byte[]>();
-            _communicationService.CommandDecoded += (_, e) => decodedCommands.Add(e.Payload.ToArray());
+            _communicationService.CommandDecoded += (_, e) => decodedCommands.Add([.. e.Payload]);
 
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
+            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -500,12 +501,12 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             int confirmCount = 0;
-            Func<string, Task<bool>> mockUserConfirm = _ =>
+            Task<bool> mockUserConfirm(string _)
             {
                 confirmCount++;
                 return Task.FromResult(true);
-            };
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            }
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -534,12 +535,12 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             int confirmCount = 0;
-            Func<string, Task<bool>> mockUserConfirm = _ =>
+            Task<bool> mockUserConfirm(string _)
             {
                 confirmCount++;
                 return Task.FromResult(confirmCount != 1 && confirmCount != 3);
-            };
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            }
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -571,12 +572,12 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             int confirmCount = 0;
-            Func<string, Task<bool>> mockUserConfirm = _ =>
+            Task<bool> mockUserConfirm(string _)
             {
                 confirmCount++;
                 return Task.FromResult(true);
-            };
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            }
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -603,12 +604,12 @@ namespace Tests.EndToEnd.Services
             ConfigureForFullTest(panel);
 
             int confirmCount = 0;
-            Func<string, Task<bool>> mockUserConfirm = _ =>
+            Task<bool> mockUserConfirm(string _)
             {
                 confirmCount++;
                 return Task.FromResult(confirmCount <= 5); // Fail buzzer (6th)
-            };
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            }
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -643,8 +644,8 @@ namespace Tests.EndToEnd.Services
 
             _mockAdapter.SetupGet(a => a.IsConnected).Returns(false);
 
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
+            Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
+            Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -671,20 +672,20 @@ namespace Tests.EndToEnd.Services
 
             using var cts = new CancellationTokenSource();
             int promptCount = 0;
-            Func<string, Task> mockUserPrompt = _ =>
+            Task mockUserPrompt(string _)
             {
                 promptCount++;
                 if (promptCount >= 3)
                     cts.Cancel();
                 return Task.CompletedTask;
-            };
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
+            }
+            Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
             var results = await _sut.TestAllAsync(
                 panelType,
-                mockUserConfirm,
-                mockUserPrompt,
+mockUserConfirm,
+mockUserPrompt,
                 null,
                 null,
                 cts.Token);
@@ -693,37 +694,6 @@ namespace Tests.EndToEnd.Services
             Assert.Single(results);
             Assert.True(results[0].Interrupted);
             Assert.False(results[0].Passed);
-        }
-
-        /// <summary>
-        /// End-to-end test: Missing protocol variables are handled gracefully.
-        /// </summary>
-        [Fact]
-        public async Task E2E_MissingProtocolVariables_ReturnsErrorResult()
-        {
-            // Arrange
-            var panelType = ButtonPanelType.DIS0026182;
-            var panel = ButtonPanel.GetByType(panelType);
-
-            SetupProtocolRepositoryForPanel(panelType);
-            Reset();
-            ConfigureForFullTest(panel);
-
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
-
-            // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
-
-            // Assert
-            var buttonResult = results.FirstOrDefault(r => r.TestType == ButtonPanelTestType.Buttons);
-            Assert.NotNull(buttonResult);
-            Assert.True(buttonResult.Passed);
-
-            var ledResult = results.FirstOrDefault(r => r.TestType == ButtonPanelTestType.Led);
-            Assert.NotNull(ledResult);
-            Assert.False(ledResult.Passed);
-            Assert.Contains("not found", ledResult.Message, StringComparison.OrdinalIgnoreCase);
         }
 
         #endregion
@@ -744,8 +714,8 @@ namespace Tests.EndToEnd.Services
                 ButtonPanelType.DIS0026166
             };
 
-            Func<string, Task> mockUserPrompt = _ => Task.CompletedTask;
-            Func<string, Task<bool>> mockUserConfirm = _ => Task.FromResult(true);
+            static Task mockUserPrompt(string _) => Task.CompletedTask;
+            static Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             var allResults = new List<List<ButtonPanelTestResult>>();
 

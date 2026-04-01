@@ -150,8 +150,8 @@ namespace Tests.Unit.Services
                     });
                 });
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
+            Task userPrompt(string _) => Task.CompletedTask;
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -180,8 +180,8 @@ namespace Tests.Unit.Services
             _mockCommunicationService.Setup(comm => comm.SetActiveChannelAsync(CommunicationChannel.Can, "250", It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result.Failure(ErrorCodes.ConnectionFailed, "Failed to connect to channel Can."));
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
+            static Task userPrompt(string _) => Task.CompletedTask;
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -211,13 +211,13 @@ namespace Tests.Unit.Services
 
             using var cts = new CancellationTokenSource();
 
-            Func<string, Task> userPrompt = _ =>
+            Task userPrompt(string _)
             {
                 cts.Cancel();
                 return Task.CompletedTask;
-            };
+            }
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -278,7 +278,7 @@ namespace Tests.Unit.Services
                     });
                 });
 
-            Func<string, Task> userPrompt = _ => Task.CompletedTask;
+            static Task userPrompt(string _) => Task.CompletedTask;
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -304,7 +304,7 @@ namespace Tests.Unit.Services
 
             SetupCommunicationMocks();
 
-            Func<string, Task> userPrompt = _ => throw new OperationCanceledException();
+            static Task userPrompt(string _) => throw new OperationCanceledException();
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -335,7 +335,7 @@ namespace Tests.Unit.Services
             SetupRepositoryMocks();
             SetupCommunicationMocks();
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -360,7 +360,7 @@ namespace Tests.Unit.Services
 
             Assert.False(panel.HasLed);
 
-            Func<string, Task<bool>> userConfirm = _ => Task.FromResult(true);
+            static Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -386,9 +386,9 @@ namespace Tests.Unit.Services
             _mockProtocolRepository.Setup(repo => repo.GetVariable("Comando Led Verde")).Returns((ushort)0x0002);
             _mockProtocolRepository.Setup(repo => repo.GetVariable("Comando Led Rosso")).Returns((ushort)0x0003);
             _mockProtocolRepository.Setup(repo => repo.GetVariable("Comando Buzzer")).Returns((ushort)0x0004);
-            _mockProtocolRepository.Setup(repo => repo.GetValue("ON")).Returns(new byte[] { 0x00, 0x00, 0x00, 0x80 });
-            _mockProtocolRepository.Setup(repo => repo.GetValue("OFF")).Returns(new byte[] { 0x00, 0x00, 0x00, 0x00 });
-            _mockProtocolRepository.Setup(repo => repo.GetValue("SINGLE_BLINK")).Returns(new byte[] { 0x00, 0xFF, 0x80, 0x61 });
+            _mockProtocolRepository.Setup(repo => repo.GetValue("ON")).Returns([0x00, 0x00, 0x00, 0x80]);
+            _mockProtocolRepository.Setup(repo => repo.GetValue("OFF")).Returns([0x00, 0x00, 0x00, 0x00]);
+            _mockProtocolRepository.Setup(repo => repo.GetValue("SINGLE_BLINK")).Returns([0x00, 0xFF, 0x80, 0x61]);
         }
 
         private void SetupCommunicationMocks()
@@ -399,6 +399,9 @@ namespace Tests.Unit.Services
                 It.IsAny<CancellationToken>()))
                 .ReturnsAsync(Result.Success());
 
+            _mockCommunicationService.Setup(comm => comm.IsChannelConnected())
+                .Returns(true);
+
             _mockCommunicationService.Setup(comm => comm.SendCommandAsync(
                 It.IsAny<ushort>(),
                 It.IsAny<byte[]>(),
@@ -406,7 +409,7 @@ namespace Tests.Unit.Services
                 It.IsAny<Func<byte[], bool>?>(),
                 It.IsAny<int>(),
                 It.IsAny<CancellationToken>()))
-                .ReturnsAsync(Result<byte[]>.Success(Array.Empty<byte>()));
+                .ReturnsAsync(Result<byte[]>.Success([]));
         }
 
         #endregion

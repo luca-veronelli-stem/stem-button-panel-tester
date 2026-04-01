@@ -61,7 +61,7 @@ public class CommunicationException : Exception
     /// Converts this exception to an Error.
     /// </summary>
     public Error ToError() =>
-        Error.Create(ErrorCode, Message, Details ?? InnerException?.Message);
+        Error.Create(ErrorCode, Message, Details ?? InnerException?.Message ?? string.Empty);
 }
 
 /// <summary>
@@ -170,5 +170,5 @@ public class DeviceException : Exception
     /// Converts this exception to an Error.
     /// </summary>
     public Error ToError() =>
-        Error.Create(ErrorCode, Message, InnerException?.Message);
+        Error.Create(ErrorCode, Message, InnerException?.Message ?? string.Empty);
 }

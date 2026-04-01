@@ -12,7 +12,7 @@ namespace GUI.Windows.Presenters
         private readonly IButtonPanelTestService _service;
         private readonly IProtocolRepositoryFactory _repositoryFactory;
         private CancellationTokenSource? _cts;
-        private CancellationTokenSource? _baptizeCts;
+        private readonly CancellationTokenSource? _baptizeCts = null;
         private string _lastPromptMessage = string.Empty;
         private List<ButtonPanelTestResult>? _latestResults;
         private bool _resultsSaved = true; // Flag per tracciare se i risultati sono stati salvati

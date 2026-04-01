@@ -12,6 +12,7 @@ namespace Tests.Integration.Communication
     /// Hardware-independent integration tests for the entire CAN stack:
     /// CanCommunicationManager → PcanAdapter → mocked IPcanApi
     /// </summary>
+    [Trait("Category", TestCategories.Integration)]
     public class CanCommunicationTests : IDisposable
     {
         private readonly Mock<IPcanApi> _mockPcanApi;

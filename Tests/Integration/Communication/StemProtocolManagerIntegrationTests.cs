@@ -9,6 +9,7 @@ namespace Tests.Integration.Communication
     /// Integration tests for StemProtocolManager.
     /// Tests the complete protocol stack with packet processing.
     /// </summary>
+    [Trait("Category", TestCategories.Integration)]
     public class StemProtocolManagerIntegrationTests
     {
         #region Round-Trip Tests

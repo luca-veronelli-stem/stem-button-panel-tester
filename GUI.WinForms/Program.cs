@@ -71,7 +71,7 @@ namespace GUI.Windows
 
             var logger = loggerFactory.CreateLogger("Startup");
             logger.LogInformation("Application starting. BaseDirectory='{BaseDir}', ProcessId={Pid}, OS={OS}, Architecture={Arch}, Framework={Framework}",
-                baseDir, Process.GetCurrentProcess().Id, RuntimeInformation.OSDescription, RuntimeInformation.ProcessArchitecture, RuntimeInformation.FrameworkDescription);
+                baseDir, Environment.ProcessId, RuntimeInformation.OSDescription, RuntimeInformation.ProcessArchitecture, RuntimeInformation.FrameworkDescription);
 
             try
             {
@@ -263,7 +263,7 @@ namespace GUI.Windows
                 sb.AppendLine($"Probe generated: {DateTime.Now:O}");
                 sb.AppendLine($"BaseDir: {baseDir}");
                 sb.AppendLine($"CurrentDirectory: {Directory.GetCurrentDirectory()}");
-                sb.AppendLine($"ProcessId: {Process.GetCurrentProcess().Id}");
+                sb.AppendLine($"ProcessId: {Environment.ProcessId}");
                 sb.AppendLine($"OS: {RuntimeInformation.OSDescription}");
                 sb.AppendLine($"Arch: {RuntimeInformation.ProcessArchitecture}");
                 sb.AppendLine($"Framework: {RuntimeInformation.FrameworkDescription}");
@@ -315,11 +315,13 @@ namespace GUI.Windows
             probeDetails.AppendLine($"Detailed PCAN probe: {DateTime.Now:O}");
 
             // Look for PCANBasic.dll in base dir and images/resources
-            var candidates = new List<string>();
-            candidates.Add(Path.Combine(baseDir, "PCANBasic.dll"));
-            candidates.Add(Path.Combine(baseDir, "Resources", "PCANBasic.dll"));
-            candidates.Add(Path.Combine(baseDir, "x86", "PCANBasic.dll"));
-            candidates.Add(Path.Combine(baseDir, "x64", "PCANBasic.dll"));
+            var candidates = new List<string>
+            {
+                Path.Combine(baseDir, "PCANBasic.dll"),
+                Path.Combine(baseDir, "Resources", "PCANBasic.dll"),
+                Path.Combine(baseDir, "x86", "PCANBasic.dll"),
+                Path.Combine(baseDir, "x64", "PCANBasic.dll")
+            };
 
             // Add copies found in PATH
             var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
@@ -335,7 +337,7 @@ namespace GUI.Windows
             }
 
             // Make unique
-            candidates = candidates.Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+            candidates = [.. candidates.Distinct(StringComparer.OrdinalIgnoreCase)];
 
             foreach (var c in candidates)
             {
@@ -647,7 +649,6 @@ namespace GUI.Windows
     {
         private readonly string _path;
         private readonly object _sync = new();
-        private bool _disposed;
 
         public FileLoggerProvider(string path)
         {
@@ -658,7 +659,7 @@ namespace GUI.Windows
 
         public void Dispose()
         {
-            _disposed = true;
+            // Nessuna risorsa unmanaged da liberare
         }
 
         private sealed class FileLogger : ILogger
