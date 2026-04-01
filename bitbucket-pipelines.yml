@@ -1,7 +1,33 @@
-# pipeline dummy for testing purposes
+# =============================================================================
+# Bitbucket Pipelines - Stem.Production.Tracker
+# =============================================================================
 
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+# =============================================================================
+# DEFINITIONS
+# =============================================================================
+definitions:
+  caches:
+    dotnetcore: ~/.nuget/packages
+
+# =============================================================================
+# PIPELINES
+# =============================================================================
 pipelines:
+  # ---------------------------------------------------------------------------
+  # DEFAULT - CI su tutti i branch
+  # ---------------------------------------------------------------------------
   default:
     - step:
+        name: Build & Test
+        caches:
+          - dotnetcore
         script:
-          - echo "I'm active!"
+          # Build
+          - dotnet build Stem.ButtonPanel.Tester.slnx --configuration Release -p:EnableWindowsTargeting=true
+          # Test
+          - dotnet test Tests/Tests.csproj --framework net10.0 --no-build --configuration Release 
+              --logger "trx;LogFileName=results.trx" --filter "FullyQualifiedName!~ReadingLoop_UsesConfiguredPollInterval" --results-directory ./test-reports
+        artifacts:
+          - test-reports/**
