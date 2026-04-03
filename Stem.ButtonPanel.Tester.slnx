@@ -25,7 +25,7 @@
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
     <File Path="bitbucket-pipelines.yml" />
-    <File Path="BUTTONPANEL_TESTER.md" />
+    <File Path="ISSUES_TRACKER.md" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
