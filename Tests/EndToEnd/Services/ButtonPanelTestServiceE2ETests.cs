@@ -37,7 +37,7 @@ namespace Tests.EndToEnd.Services
         private CancellationTokenSource? _buttonSimulationCts;
         private bool _failConnection;
         private readonly List<(uint ArbitrationId, byte[] Data)> _sentMessages = [];
-        private static int _packetId = 1;
+        private int _packetId = 1;  // Non statico per evitare conflitti tra test
 
         public ButtonPanelTestServiceE2ETests()
         {
@@ -196,9 +196,10 @@ namespace Tests.EndToEnd.Services
             _simulatedPanel = null;
             _currentButtonIndex = 0;
             _skipButtonIndices.Clear();
+            _packetId = 1;  // Reset packet ID per ogni test
         }
 
-        private static byte[] BuildProtocolPacket(byte[] appPayload)
+        private byte[] BuildProtocolPacket(byte[] appPayload)
         {
             byte cryptType = 0x00;
             uint senderId = 0;
@@ -221,7 +222,7 @@ namespace Tests.EndToEnd.Services
             transportPacket.AddRange(crcBytes);
 
             // NetInfo uses little-endian (BitConverter.GetBytes behavior)
-            int packetId = Interlocked.Increment(ref _packetId) % 7 + 1;
+            int packetId = ++_packetId % 7 + 1;
             ushort netInfoValue = (ushort)(
                 (0 << 6) |
                 (0 << 5) |
@@ -301,6 +302,7 @@ namespace Tests.EndToEnd.Services
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
+            Reset();
             ConfigureForFullTest(panel);
 
             var userInteractions = new List<string>();
