@@ -10,11 +10,22 @@
     <File Path=".copilot/agents/issues-agent.md" />
     <File Path=".copilot/agents/test-agent.md" />
   </Folder>
+  <Folder Name="/Docs/">
+    <File Path="Docs/BUTTONPANEL_TESTER.md" />
+  </Folder>
+  <Folder Name="/Docs/Standards/">
+    <File Path="Docs/Standards/TEMPLATE_STANDARD.md" />
+  </Folder>
+  <Folder Name="/Docs/Standards/Templates/">
+    <File Path="Docs/Standards/Templates/ISSUES_TEMPLATE.md" />
+    <File Path="Docs/Standards/Templates/README_TEMPLATE.md" />
+    <File Path="Docs/Standards/Templates/STANDARD_TEMPLATE.md" />
+  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
     <File Path="bitbucket-pipelines.yml" />
-    <File Path="BUTTONPANEL_TESTER.md" />
+    <File Path="ISSUES_TRACKER.md" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>

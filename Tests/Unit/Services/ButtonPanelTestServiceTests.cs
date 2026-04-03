@@ -122,13 +122,18 @@ namespace Tests.Unit.Services
 
             int currentButtonIndex = 0;
             object lockObj = new();
+            var promptSignal = new SemaphoreSlim(0);
 
             _mockCommunicationService.SetupAdd(m => m.CommandDecoded += It.IsAny<EventHandler<AppLayerDecoderEventArgs>>())
                 .Callback<EventHandler<AppLayerDecoderEventArgs>>(handler =>
                 {
                     _ = Task.Run(async () =>
                     {
-                        await Task.Delay(20);
+                        // Wait until userPrompt is called (service is ready for button press)
+                        if (!await promptSignal.WaitAsync(2000))
+                            return;
+
+                        await Task.Delay(10);
 
                         int buttonIndex;
                         lock (lockObj)
@@ -151,7 +156,7 @@ namespace Tests.Unit.Services
                 });
 
             Task<bool> userConfirm(string _) => Task.FromResult(true);
-            Task userPrompt(string _) => Task.CompletedTask;
+            Task userPrompt(string _) { promptSignal.Release(); return Task.CompletedTask; }
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
@@ -250,12 +255,18 @@ namespace Tests.Unit.Services
 
             int currentButtonIndex = 0;
             object lockObj = new();
+            var promptSignal = new SemaphoreSlim(0);
 
+            // When the service subscribes to CommandDecoded, wait for prompt signal then send button press
             _mockCommunicationService.SetupAdd(m => m.CommandDecoded += It.IsAny<EventHandler<AppLayerDecoderEventArgs>>())
                 .Callback<EventHandler<AppLayerDecoderEventArgs>>(handler =>
                 {
                     _ = Task.Run(async () =>
                     {
+                        // Wait until userPrompt is called (service is ready for button press)
+                        if (!await promptSignal.WaitAsync(2000))
+                            return;
+
                         await Task.Delay(10);
 
                         int buttonIndex;
@@ -278,7 +289,7 @@ namespace Tests.Unit.Services
                     });
                 });
 
-            static Task userPrompt(string _) => Task.CompletedTask;
+            Task userPrompt(string _) { promptSignal.Release(); return Task.CompletedTask; }
 
             var sut = new ButtonPanelTestService(
                 _mockCommunicationService.Object,
