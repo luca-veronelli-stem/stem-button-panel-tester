@@ -1,7 +1,37 @@
-# pipeline dummy for testing purposes
+# =============================================================================
+# Bitbucket Pipelines - Stem.ButtonPanel.Tester
+# =============================================================================
 
+image: mcr.microsoft.com/dotnet/sdk:10.0
+
+# =============================================================================
+# DEFINITIONS
+# =============================================================================
+definitions:
+  caches:
+    dotnetcore: ~/.nuget/packages
+
+# =============================================================================
+# PIPELINES
+# =============================================================================
 pipelines:
+  # ---------------------------------------------------------------------------
+  # DEFAULT - CI su tutti i branch
+  # ---------------------------------------------------------------------------
   default:
     - step:
+        name: Build & Test
+        caches:
+          - dotnetcore
         script:
-          - echo "I'm active!"
+          # Build (cross-compile per Windows su Linux)
+          - dotnet build Stem.ButtonPanel.Tester.slnx --configuration Release -p:EnableWindowsTargeting=true
+          # Test - escludi test che richiedono hardware/Windows
+          # Categorie eseguite: Unit, Integration, EndToEnd (tutti mockano hardware)
+          # Categorie escluse: RequiresHardware, RequiresWindows
+          - dotnet test Tests/Tests.csproj --framework net10.0 --no-build --configuration Release 
+              --logger "trx;LogFileName=results.trx"
+              --filter "Category!=RequiresHardware&Category!=RequiresWindows"
+              --results-directory ./test-reports
+        artifacts:
+          - test-reports/**

@@ -14,7 +14,16 @@
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
     <File Path="bitbucket-pipelines.yml" />
+    <File Path="BUTTONPANEL_TESTER.md" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
+  <Project Path="Communication/Communication.csproj" />
+  <Project Path="Core/Core.csproj" />
+  <Project Path="Data/Data.csproj" />
+  <Project Path="GUI.Windows/GUI.Windows.csproj" Id="adae81a9-8a04-45ef-aa9f-46bac82c4a7f" />
+  <Project Path="GUI.WinForms/GUI.WinForms.csproj" />
+  <Project Path="Infrastructure/Infrastructure.csproj" />
+  <Project Path="Services/Services.csproj" />
+  <Project Path="Tests/Tests.csproj" />
 </Solution>
