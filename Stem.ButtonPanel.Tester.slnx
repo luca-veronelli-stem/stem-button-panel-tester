@@ -10,7 +10,9 @@
     <File Path=".copilot/agents/issues-agent.md" />
     <File Path=".copilot/agents/test-agent.md" />
   </Folder>
-  <Folder Name="/Docs/" />
+  <Folder Name="/Docs/">
+    <File Path="Docs/BUTTONPANEL_TESTER.md" />
+  </Folder>
   <Folder Name="/Docs/Standards/">
     <File Path="Docs/Standards/TEMPLATE_STANDARD.md" />
   </Folder>
