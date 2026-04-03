@@ -35,6 +35,7 @@ namespace Tests.EndToEnd.Services
         private HashSet<int> _skipButtonIndices = [];
         private readonly Lock _lockObj = new();
         private CancellationTokenSource? _buttonSimulationCts;
+        private readonly SemaphoreSlim _buttonPromptSignal = new(0);
         private bool _failConnection;
         private readonly List<(uint ArbitrationId, byte[] Data)> _sentMessages = [];
         private int _packetId = 1;  // Non statico per evitare conflitti tra test
@@ -127,12 +128,24 @@ namespace Tests.EndToEnd.Services
             _buttonSimulationCts?.Dispose();
             _buttonSimulationCts = new CancellationTokenSource();
 
+            // Drain any leftover signals from previous tests
+            while (_buttonPromptSignal.CurrentCount > 0)
+                _buttonPromptSignal.Wait(0);
+
             _ = Task.Run(async () =>
             {
-                await Task.Delay(100); // Initial delay
-
                 while (!_buttonSimulationCts.Token.IsCancellationRequested && _simulatedPanel != null)
                 {
+                    // Wait until the service calls userPrompt ("Premi pulsante X")
+                    try
+                    {
+                        await _buttonPromptSignal.WaitAsync(_buttonSimulationCts.Token);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        return;
+                    }
+
                     int buttonIndex;
                     lock (_lockObj)
                     {
@@ -144,30 +157,17 @@ namespace Tests.EndToEnd.Services
 
                     if (!_skipButtonIndices.Contains(buttonIndex))
                     {
+                        // Small delay to let the service set up its listener
+                        await Task.Delay(10);
+
                         var buttonMask = _simulatedPanel.ButtonMasks[buttonIndex];
                         // Payload format from button panel: [0x00, 0x02, 0x80, 0x3E, buttonMask]
                         var appPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
                         SimulateReceivedPacket(appPayload);
-
-                        try
-                        {
-                            await Task.Delay(50, _buttonSimulationCts.Token);
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return;
-                        }
                     }
                     else
                     {
-                        try
-                        {
-                            await Task.Delay(550, _buttonSimulationCts.Token); // Wait for timeout
-                        }
-                        catch (OperationCanceledException)
-                        {
-                            return;
-                        }
+                        // Skip: don't send button press, let the service timeout
                     }
                 }
             }, _buttonSimulationCts.Token);
@@ -309,6 +309,7 @@ namespace Tests.EndToEnd.Services
             Task mockUserPrompt(string msg)
             {
                 userInteractions.Add($"PROMPT: {msg}");
+                _buttonPromptSignal.Release();
                 return Task.CompletedTask;
             }
             Task<bool> mockUserConfirm(string msg)
@@ -364,7 +365,7 @@ onButtonResult);
                 confirmCalls.Add(msg);
                 return Task.FromResult(true);
             }
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -399,7 +400,7 @@ onButtonResult);
             ConfigureForFullTest(panel);
 
             Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             var buttonResults = new List<bool>();
             void onButtonResult(int _, bool p) => buttonResults.Add(p);
@@ -436,7 +437,7 @@ onButtonResult);
             var buttonResults = new List<(int index, bool passed)>();
             void onButtonResult(int i, bool p) => buttonResults.Add((i, p));
 
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
             Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
@@ -469,7 +470,7 @@ onButtonResult);
             var decodedCommands = new List<byte[]>();
             _communicationService.CommandDecoded += (_, e) => decodedCommands.Add([.. e.Payload]);
 
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
             Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
@@ -508,7 +509,7 @@ onButtonResult);
                 confirmCount++;
                 return Task.FromResult(true);
             }
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -542,7 +543,7 @@ onButtonResult);
                 confirmCount++;
                 return Task.FromResult(confirmCount != 1 && confirmCount != 3);
             }
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -579,7 +580,7 @@ onButtonResult);
                 confirmCount++;
                 return Task.FromResult(true);
             }
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -611,7 +612,7 @@ onButtonResult);
                 confirmCount++;
                 return Task.FromResult(confirmCount <= 5); // Fail buzzer (6th)
             }
-            Task mockUserPrompt(string _) => Task.CompletedTask;
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
             var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
@@ -677,6 +678,7 @@ onButtonResult);
             Task mockUserPrompt(string _)
             {
                 promptCount++;
+                _buttonPromptSignal.Release();
                 if (promptCount >= 3)
                     cts.Cancel();
                 return Task.CompletedTask;
@@ -716,8 +718,8 @@ mockUserPrompt,
                 ButtonPanelType.DIS0026166
             };
 
-            static Task mockUserPrompt(string _) => Task.CompletedTask;
-            static Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
+            Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
+            Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             var allResults = new List<List<ButtonPanelTestResult>>();
 
