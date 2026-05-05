@@ -1,9 +1,9 @@
+using System.Collections.Immutable;
+using System.Reflection;
 using Core.Interfaces.Data;
 using Core.Models.Data;
 using Data;
 using Moq;
-using System.Collections.Immutable;
-using System.Reflection;
 
 namespace Tests.Unit.Data
 {
@@ -28,7 +28,7 @@ namespace Tests.Unit.Data
         public void Constructor_NullExcelRepository_ThrowsArgumentNullException()
         {
             // Act & Assert
-            var exception = Assert.Throws<TargetInvocationException>(() =>
+            TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() =>
                 CreateRepository(null!, TestFilePath, TestRecipientId));
 
             Assert.IsType<ArgumentNullException>(exception.InnerException);
@@ -39,7 +39,7 @@ namespace Tests.Unit.Data
         public void Constructor_NullFilePath_ThrowsArgumentException()
         {
             // Act & Assert
-            var exception = Assert.Throws<TargetInvocationException>(() =>
+            TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() =>
                 CreateRepository(_mockExcelRepository.Object, null!, TestRecipientId));
 
             Assert.IsType<ArgumentException>(exception.InnerException);
@@ -50,7 +50,7 @@ namespace Tests.Unit.Data
         public void Constructor_EmptyFilePath_ThrowsArgumentException()
         {
             // Act & Assert
-            var exception = Assert.Throws<TargetInvocationException>(() =>
+            TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() =>
                 CreateRepository(_mockExcelRepository.Object, "", TestRecipientId));
 
             Assert.IsType<ArgumentException>(exception.InnerException);
@@ -61,7 +61,7 @@ namespace Tests.Unit.Data
         public void Constructor_WhitespaceFilePath_ThrowsArgumentException()
         {
             // Act & Assert
-            var exception = Assert.Throws<TargetInvocationException>(() =>
+            TargetInvocationException exception = Assert.Throws<TargetInvocationException>(() =>
                 CreateRepository(_mockExcelRepository.Object, "   ", TestRecipientId));
 
             Assert.IsType<ArgumentException>(exception.InnerException);
@@ -75,7 +75,7 @@ namespace Tests.Unit.Data
             SetupEmptyMocks();
 
             // Act
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Assert
             Assert.NotNull(repository);
@@ -94,7 +94,7 @@ namespace Tests.Unit.Data
                 new("Scrivi variabile logica", "01", "00")
             };
             SetupProtocolDataMock(commands);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             ushort result = repository.GetCommand("Scrivi variabile logica");
@@ -112,7 +112,7 @@ namespace Tests.Unit.Data
                 new("TestCommand", "AB", "CD")
             };
             SetupProtocolDataMock(commands);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act - Use different case than the original command name
             ushort result = repository.GetCommand("TESTCOMMAND");
@@ -130,7 +130,7 @@ namespace Tests.Unit.Data
                 new("TestCommand", "AB", "CD")
             };
             SetupProtocolDataMock(commands);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act - Use exact same case as the original command name
             ushort result = repository.GetCommand("TestCommand");
@@ -148,10 +148,10 @@ namespace Tests.Unit.Data
                 new("ExistingCommand", "01", "00")
             };
             SetupProtocolDataMock(commands);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
-            var exception = Assert.Throws<KeyNotFoundException>(() =>
+            KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() =>
                 repository.GetCommand("NonExistentCommand"));
 
             Assert.Contains("NonExistentCommand", exception.Message);
@@ -162,7 +162,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetCommand(null!));
@@ -173,7 +173,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetCommand(""));
@@ -184,7 +184,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetCommand("   "));
@@ -201,7 +201,7 @@ namespace Tests.Unit.Data
                 new("Command3", "03", "00")
             };
             SetupProtocolDataMock(commands);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             ushort result = repository.GetCommand("Command2");
@@ -223,7 +223,7 @@ namespace Tests.Unit.Data
                 new("Comando Led Verde", "00", "02", "INT")
             };
             SetupDictionaryMock(variables);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             ushort result = repository.GetVariable("Comando Led Verde");
@@ -241,7 +241,7 @@ namespace Tests.Unit.Data
                 new("TestVariable", "AB", "CD", "INT")
             };
             SetupDictionaryMock(variables);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act - Use different case than the original variable name
             ushort result = repository.GetVariable("TESTVARIABLE");
@@ -259,7 +259,7 @@ namespace Tests.Unit.Data
                 new("TestVariable", "AB", "CD", "INT")
             };
             SetupDictionaryMock(variables);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act - Use exact same case as the original variable name
             ushort result = repository.GetVariable("TestVariable");
@@ -277,10 +277,10 @@ namespace Tests.Unit.Data
                 new("ExistingVariable", "00", "01", "INT")
             };
             SetupDictionaryMock(variables);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
-            var exception = Assert.Throws<KeyNotFoundException>(() =>
+            KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() =>
                 repository.GetVariable("NonExistentVariable"));
 
             Assert.Contains("NonExistentVariable", exception.Message);
@@ -291,7 +291,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetVariable(null!));
@@ -302,7 +302,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetVariable(""));
@@ -317,7 +317,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             byte[] result = repository.GetValue("ON");
@@ -331,7 +331,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             byte[] result = repository.GetValue("OFF");
@@ -345,7 +345,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             byte[] result = repository.GetValue("SINGLE_BLINK");
@@ -359,7 +359,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             byte[] onResult = repository.GetValue("on");
@@ -375,10 +375,10 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
-            var exception = Assert.Throws<KeyNotFoundException>(() =>
+            KeyNotFoundException exception = Assert.Throws<KeyNotFoundException>(() =>
                 repository.GetValue("UNKNOWN_VALUE"));
 
             Assert.Contains("UNKNOWN_VALUE", exception.Message);
@@ -389,7 +389,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetValue(null!));
@@ -400,7 +400,7 @@ namespace Tests.Unit.Data
         {
             // Arrange
             SetupEmptyMocks();
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act & Assert
             Assert.Throws<ArgumentException>(() => repository.GetValue(""));
@@ -420,7 +420,7 @@ namespace Tests.Unit.Data
                 new("Command2", "02", "00")
             };
             SetupProtocolDataMock(commands);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             repository.GetCommand("Command1");
@@ -442,7 +442,7 @@ namespace Tests.Unit.Data
                 new("Var2", "00", "02", "INT")
             };
             SetupDictionaryMock(variables);
-            var repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
+            IProtocolRepository repository = CreateRepository(_mockExcelRepository.Object, TestFilePath, TestRecipientId);
 
             // Act
             repository.GetVariable("Var1");
@@ -464,7 +464,7 @@ namespace Tests.Unit.Data
             uint recipientId)
         {
             // Use reflection to create internal class
-            var type = typeof(ExcelProtocolRepositoryFactory).Assembly
+            Type? type = typeof(ExcelProtocolRepositoryFactory).Assembly
                 .GetType("Data.ExcelStemProtocolRepository");
 
             return (IProtocolRepository)Activator.CreateInstance(

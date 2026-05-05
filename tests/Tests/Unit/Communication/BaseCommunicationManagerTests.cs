@@ -1,6 +1,5 @@
-﻿using Communication;
-
 using System.Reflection;
+using Communication;
 
 namespace Tests.Unit.Communication
 {
@@ -31,7 +30,7 @@ namespace Tests.Unit.Communication
             _manager.ConnectionStatusChanged += (_, connected) => eventRaised = connected;
 
             // Usa reflection per accedere al metodo protected
-            var method = typeof(BaseCommunicationManager).GetMethod("RaiseConnectionChanged",
+            MethodInfo? method = typeof(BaseCommunicationManager).GetMethod("RaiseConnectionChanged",
                 BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
             Assert.NotNull(method);
 
@@ -52,7 +51,7 @@ namespace Tests.Unit.Communication
             _manager.PacketReceived += (_, data) => received = data;
 
             // Usa reflection per accedere al metodo protected
-            var method = typeof(BaseCommunicationManager).GetMethod("RaisePacketReceived",
+            MethodInfo? method = typeof(BaseCommunicationManager).GetMethod("RaisePacketReceived",
                 BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy);
             Assert.NotNull(method);
 

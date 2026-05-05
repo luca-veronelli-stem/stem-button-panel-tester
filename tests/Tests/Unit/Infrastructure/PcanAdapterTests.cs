@@ -1,11 +1,10 @@
-﻿using Core.Models.Communication;
+using System.Reflection;
+using Core.Models.Communication;
 using Infrastructure;
 using Infrastructure.Lib;
-
 using Microsoft.Extensions.Logging;
 using Moq;
 using Peak.Can.Basic;
-using System.Reflection;
 
 namespace Tests.Unit.Infrastructure
 {
@@ -109,7 +108,7 @@ namespace Tests.Unit.Infrastructure
                 {
                     if (readCallIndex < sequence.Length)
                     {
-                        var (Status, Message, Timestamp) = sequence[readCallIndex];
+                        (PcanStatus Status, PcanMessage? Message, ulong Timestamp) = sequence[readCallIndex];
                         if (Status == PcanStatus.OK)
                         {
                             msg = Message ?? default!;
@@ -166,7 +165,7 @@ namespace Tests.Unit.Infrastructure
         /// <returns><c>true</c> se il parsing è riuscito, <c>false</c> altrimenti.</returns>
         private static bool InvokeTryParseConfig(string config, out Bitrate baudRate)
         {
-            var method = typeof(PcanAdapter)
+            MethodInfo method = typeof(PcanAdapter)
                 .GetMethod("TryParseConfig", BindingFlags.NonPublic | BindingFlags.Static)
                 ?? throw new InvalidOperationException("TryParseConfig method not found.");
 
@@ -305,7 +304,7 @@ namespace Tests.Unit.Infrastructure
             await _adapter.ConnectAsync("250");
 
             FieldInfo? readingTaskField = typeof(PcanAdapter).GetField("_readingTask", BindingFlags.NonPublic | BindingFlags.Instance);
-            Task? readingTask = (Task?)readingTaskField?.GetValue(_adapter);
+            var readingTask = (Task?)readingTaskField?.GetValue(_adapter);
 
             Assert.NotNull(readingTask);
             Assert.True(readingTask.Status == TaskStatus.RanToCompletion ||
@@ -324,7 +323,7 @@ namespace Tests.Unit.Infrastructure
             await _adapter.ConnectAsync("250");
 
             FieldInfo? ctsField = typeof(PcanAdapter).GetField("_cts", BindingFlags.NonPublic | BindingFlags.Instance);
-            CancellationTokenSource? firstCts = (CancellationTokenSource?)ctsField?.GetValue(_adapter);
+            var firstCts = (CancellationTokenSource?)ctsField?.GetValue(_adapter);
             Assert.NotNull(firstCts);
             Assert.False(firstCts.IsCancellationRequested);
 
@@ -332,7 +331,7 @@ namespace Tests.Unit.Infrastructure
 
             Assert.True(firstCts.IsCancellationRequested);
 
-            CancellationTokenSource? secondCts = (CancellationTokenSource?)ctsField?.GetValue(_adapter);
+            var secondCts = (CancellationTokenSource?)ctsField?.GetValue(_adapter);
             Assert.NotNull(secondCts);
             Assert.NotEqual(firstCts, secondCts);
             Assert.False(secondCts.IsCancellationRequested);
@@ -354,7 +353,7 @@ namespace Tests.Unit.Infrastructure
                 Assert.False(connected);
             };
 
-            var result = await _adapter.ConnectAsync("250");
+            bool result = await _adapter.ConnectAsync("250");
 
             Assert.False(result);
             Assert.False(_adapter.IsConnected);
@@ -367,12 +366,12 @@ namespace Tests.Unit.Infrastructure
         [Fact]
         public async Task ConnectAsync_ReturnsFalse_OnInvalidConfigString()
         {
-            var invalidConfig = "abc";
+            string invalidConfig = "abc";
 
             bool connectionChangedFired = false;
             _adapter.ConnectionStatusChanged += (_, _) => connectionChangedFired = true;
 
-            var result = await _adapter.ConnectAsync(invalidConfig);
+            bool result = await _adapter.ConnectAsync(invalidConfig);
 
             Assert.False(result);
             Assert.False(_adapter.IsConnected);
@@ -415,7 +414,7 @@ namespace Tests.Unit.Infrastructure
             MockGetStatus(PcanStatus.OK);
             MockRead(PcanStatus.ReceiveQueueEmpty);
 
-            var result = await _adapter.ConnectAsync(config);
+            bool result = await _adapter.ConnectAsync(config);
 
             Assert.True(result);
             _mockApi.Verify(api => api.Initialize(It.IsAny<PcanChannel>(), expectedBaudRate), Times.Once);
@@ -516,7 +515,7 @@ namespace Tests.Unit.Infrastructure
             await _adapter.ConnectAsync("250");
 
             FieldInfo? readingTaskField = typeof(PcanAdapter).GetField("_readingTask", BindingFlags.NonPublic | BindingFlags.Instance);
-            Task? readingTask = (Task?)readingTaskField?.GetValue(_adapter);
+            var readingTask = (Task?)readingTaskField?.GetValue(_adapter);
             Assert.NotNull(readingTask);
 
             await _adapter.DisconnectAsync();
@@ -608,8 +607,12 @@ namespace Tests.Unit.Infrastructure
                 Assert.Equal(arbitrationId, msg.ID);
                 Assert.Equal(MessageType.Standard, msg.MsgType);
                 Assert.Equal((byte)data.Length, msg.DLC);
-                var msgData = new byte[msg.DLC];
-                for (int i = 0; i < msg.DLC; i++) msgData[i] = msg.Data[i];
+                byte[] msgData = new byte[msg.DLC];
+                for (int i = 0; i < msg.DLC; i++)
+                {
+                    msgData[i] = msg.Data[i];
+                }
+
                 Assert.Equal(data, msgData);
             });
 
@@ -662,8 +665,12 @@ namespace Tests.Unit.Infrastructure
             {
                 messageVerified = true;
                 Assert.Equal((byte)4, msg.DLC);
-                var msgData = new byte[8];
-                for (int i = 0; i < 8; i++) msgData[i] = msg.Data[i];
+                byte[] msgData = new byte[8];
+                for (int i = 0; i < 8; i++)
+                {
+                    msgData[i] = msg.Data[i];
+                }
+
                 Assert.Equal(data, msgData.Take(4).ToArray());
                 Assert.All(msgData.Skip(4), b => Assert.Equal(0, b));
             });
@@ -738,7 +745,7 @@ namespace Tests.Unit.Infrastructure
             MockInitialize(PcanStatus.OK);
             MockGetStatus(PcanStatus.OK);
 
-            var expectedData = new byte[] { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11 };
+            byte[] expectedData = new byte[] { 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF, 0x00, 0x11 };
             var expectedMsg = new PcanMessage
             {
                 ID = 0x1FFFFFFF,
@@ -778,9 +785,9 @@ namespace Tests.Unit.Infrastructure
 
             await _adapter.ConnectAsync("250");
 
-            var readingTaskField = typeof(PcanAdapter).GetField("_readingTask", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo? readingTaskField = typeof(PcanAdapter).GetField("_readingTask", BindingFlags.NonPublic | BindingFlags.Instance);
             var readingTask = (Task?)readingTaskField?.GetValue(_adapter);
-            var ctsField = typeof(PcanAdapter).GetField("_cts", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo? ctsField = typeof(PcanAdapter).GetField("_cts", BindingFlags.NonPublic | BindingFlags.Instance);
             var cts = (CancellationTokenSource?)ctsField?.GetValue(_adapter);
 
             Assert.NotNull(readingTask);
@@ -875,7 +882,7 @@ namespace Tests.Unit.Infrastructure
         [InlineData("  ")]
         public void TryParseConfig_ReturnsFalse_OnNonNumericInput(string config)
         {
-            bool result = InvokeTryParseConfig(config, out var baudRate);
+            bool result = InvokeTryParseConfig(config, out Bitrate baudRate);
 
             Assert.False(result);
             Assert.Equal(Bitrate.Pcan250, baudRate);
@@ -887,7 +894,7 @@ namespace Tests.Unit.Infrastructure
         [Fact]
         public void TryParseConfig_ReturnsFalse_OnNullInput()
         {
-            bool result = InvokeTryParseConfig(null!, out var baudRate);
+            bool result = InvokeTryParseConfig(null!, out Bitrate baudRate);
 
             Assert.False(result);
             Assert.Equal(Bitrate.Pcan250, baudRate);
@@ -913,7 +920,7 @@ namespace Tests.Unit.Infrastructure
         [InlineData("1000000", Bitrate.Pcan1000)]
         public void TryParseConfig_MapsAllSupportedBaudratesCorrectly(string config, Bitrate expectedBaudRate)
         {
-            bool result = InvokeTryParseConfig(config, out var baudRate);
+            bool result = InvokeTryParseConfig(config, out Bitrate baudRate);
 
             Assert.True(result);
             Assert.Equal(expectedBaudRate, baudRate);
@@ -930,7 +937,7 @@ namespace Tests.Unit.Infrastructure
         [InlineData("-500")]
         public void TryParseConfig_FallsBackTo250k_OnUnsupportedValue(string config)
         {
-            bool result = InvokeTryParseConfig(config, out var baudRate);
+            bool result = InvokeTryParseConfig(config, out Bitrate baudRate);
 
             Assert.True(result);
             Assert.Equal(Bitrate.Pcan250, baudRate);
@@ -951,7 +958,7 @@ namespace Tests.Unit.Infrastructure
 
             await _adapter.ConnectAsync("250");
 
-            var ctsField = typeof(PcanAdapter).GetField("_cts", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo? ctsField = typeof(PcanAdapter).GetField("_cts", BindingFlags.NonPublic | BindingFlags.Instance);
             var cts = (CancellationTokenSource?)ctsField?.GetValue(_adapter);
             Assert.NotNull(cts);
             Assert.False(cts.IsCancellationRequested);
@@ -1019,7 +1026,7 @@ namespace Tests.Unit.Infrastructure
 
             await _adapter.ConnectAsync("250");
             await Task.Delay(100);
-            var sendResult = await _adapter.Send(0x123, [0xAA]);
+            bool sendResult = await _adapter.Send(0x123, [0xAA]);
             await _adapter.DisconnectAsync();
 
             Assert.True(sendResult);

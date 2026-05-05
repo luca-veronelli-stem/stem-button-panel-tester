@@ -154,7 +154,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             int iterations = 1000;
 
             // Act - Call from multiple threads concurrently
-            var tasks = Enumerable.Range(0, 10).Select(_ => Task.Run(() =>
+            Task[] tasks = Enumerable.Range(0, 10).Select(_ => Task.Run(() =>
             {
                 for (int i = 0; i < iterations / 10; i++)
                 {
@@ -178,7 +178,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var invalidIds = new System.Collections.Concurrent.ConcurrentBag<int>();
 
             // Act - Stress test with concurrent access
-            var tasks = Enumerable.Range(0, 20).Select(_ => Task.Run(() =>
+            Task[] tasks = Enumerable.Range(0, 20).Select(_ => Task.Run(() =>
             {
                 for (int i = 0; i < 500; i++)
                 {

@@ -1,5 +1,6 @@
 using Core.Enums;
 using Core.Interfaces.Services;
+using Core.Results;
 using Microsoft.Extensions.Logging;
 using Services.Helpers;
 using Services.Models;
@@ -81,7 +82,7 @@ namespace Services
             try
             {
                 // 1. Connetti al bus CAN
-                var channelResult = await ConnectToCanBusAsync(cancellationToken).ConfigureAwait(false);
+                Result channelResult = await ConnectToCanBusAsync(cancellationToken).ConfigureAwait(false);
                 if (!channelResult.IsSuccess)
                 {
                     return CreateFailureResult(channelResult.Error.ToString());
@@ -94,7 +95,7 @@ namespace Services
                 var config = PanelTypeConfiguration.GetConfiguration(panelType);
 
                 // 4. Invia WHO_ARE_YOU e attendi WHO_AM_I
-                var whoAmIResponse = await SendWhoAreYouAsync(config, timeoutMs, cancellationToken).ConfigureAwait(false);
+                WhoAmIResponse? whoAmIResponse = await SendWhoAreYouAsync(config, timeoutMs, cancellationToken).ConfigureAwait(false);
                 if (!whoAmIResponse.HasValue)
                 {
                     return CreateFailureResult("Nessuna risposta WHO_AM_I ricevuta");
@@ -103,11 +104,11 @@ namespace Services
                 LogWhoAmIResponse(whoAmIResponse.Value);
 
                 // 5. Calcola indirizzo STEM
-                var stemAddress = CalculateStemAddress(panelType, boardNumber, useFinalMachineType);
+                uint stemAddress = CalculateStemAddress(panelType, boardNumber, useFinalMachineType);
                 LogStemAddress(stemAddress, useFinalMachineType);
 
                 // 6. Invia SET_ADDRESS
-                var setAddressResult = await SendSetAddressAsync(whoAmIResponse.Value.Uuid, stemAddress, timeoutMs, cancellationToken).ConfigureAwait(false);
+                bool setAddressResult = await SendSetAddressAsync(whoAmIResponse.Value.Uuid, stemAddress, timeoutMs, cancellationToken).ConfigureAwait(false);
                 if (!setAddressResult)
                 {
                     return CreateFailureResult("Errore invio SET_ADDRESS");
@@ -121,7 +122,7 @@ namespace Services
                 // 8. Verifica indirizzo finale se richiesto
                 if (useFinalMachineType)
                 {
-                    var verificationResult = await VerifyDeviceAddressAsync(config, stemAddress, whoAmIResponse.Value.Uuid, timeoutMs, cancellationToken).ConfigureAwait(false);
+                    bool verificationResult = await VerifyDeviceAddressAsync(config, stemAddress, whoAmIResponse.Value.Uuid, timeoutMs, cancellationToken).ConfigureAwait(false);
                     if (!verificationResult)
                     {
                         return CreateFailureResult($"Il dispositivo non risponde al nuovo indirizzo 0x{stemAddress:X8}", whoAmIResponse.Value.Uuid, stemAddress);
@@ -154,7 +155,7 @@ namespace Services
         private async Task<Core.Results.Result> ConnectToCanBusAsync(CancellationToken cancellationToken)
         {
             _logger.LogInformation("Connessione al bus CAN...");
-            var result = await _communicationService.SetActiveChannelAsync(
+            Result result = await _communicationService.SetActiveChannelAsync(
                 CommunicationChannel.Can,
                 ProtocolConstants.DefaultCanConfig,
                 cancellationToken).ConfigureAwait(false);
@@ -187,7 +188,7 @@ namespace Services
             int timeoutMs,
             CancellationToken cancellationToken)
         {
-            var payload = PayloadBuilder.BuildWhoAreYouPayload(
+            byte[] payload = PayloadBuilder.BuildWhoAreYouPayload(
                 config.MachineType,
                 config.FirmwareType,
                 ProtocolConstants.ResetAddressFlag);
@@ -196,7 +197,7 @@ namespace Services
             _logger.LogInformation("Payload: MACHINE_TYPE=0x{MachineType:X2}, FW_TYPE=0x{FwType:X4}, RESET_FLAG=0x{ResetFlag:X2}",
                 config.MachineType, config.FirmwareType, ProtocolConstants.ResetAddressFlag);
 
-            var sendResult = await _communicationService.SendCommandAsync(
+            Result<byte[]> sendResult = await _communicationService.SendCommandAsync(
                 ProtocolConstants.CMD_WHO_ARE_YOU,
                 payload,
                 waitAnswer: true,
@@ -211,7 +212,7 @@ namespace Services
                 return null;
             }
 
-            if (ResponseParser.TryParseWhoAmI(sendResult.Value, out var response))
+            if (ResponseParser.TryParseWhoAmI(sendResult.Value, out WhoAmIResponse response))
             {
                 return response;
             }
@@ -228,10 +229,10 @@ namespace Services
         {
             _logger.LogInformation("Invio comando SET_ADDRESS (0x{Command:X4})", ProtocolConstants.CMD_SET_ADDRESS);
 
-            var payload = PayloadBuilder.BuildSetAddressPayload(uuid, stemAddress);
+            byte[] payload = PayloadBuilder.BuildSetAddressPayload(uuid, stemAddress);
             _logger.LogInformation("Payload SET_ADDRESS: {Payload}", BitConverter.ToString(payload));
 
-            var result = await _communicationService.SendCommandAsync(
+            Result<byte[]> result = await _communicationService.SendCommandAsync(
                 ProtocolConstants.CMD_SET_ADDRESS,
                 payload,
                 waitAnswer: false,
@@ -261,12 +262,12 @@ namespace Services
 
             _communicationService.SetSenderRecipientIds(ProtocolConstants.ComputerSenderId, deviceAddress);
 
-            var payload = PayloadBuilder.BuildWhoAreYouPayload(
+            byte[] payload = PayloadBuilder.BuildWhoAreYouPayload(
                 config.MachineType,
                 config.FirmwareType,
                 ProtocolConstants.NoResetFlag);
 
-            var sendResult = await _communicationService.SendCommandAsync(
+            Result<byte[]> sendResult = await _communicationService.SendCommandAsync(
                 ProtocolConstants.CMD_WHO_ARE_YOU,
                 payload,
                 waitAnswer: true,
@@ -288,7 +289,7 @@ namespace Services
             }
 
             // Oppure accetta WHO_AM_I completo con UUID corretto
-            if (ResponseParser.TryParseWhoAmI(data, out var response))
+            if (ResponseParser.TryParseWhoAmI(data, out WhoAmIResponse response))
             {
                 if (response.Uuid.SequenceEqual(expectedUuid))
                 {

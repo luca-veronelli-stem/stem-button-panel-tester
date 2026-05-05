@@ -1,4 +1,4 @@
-﻿namespace Core.Enums
+namespace Core.Enums
 {
     // Tipi possibili di pulsantiere
     public enum ButtonPanelType

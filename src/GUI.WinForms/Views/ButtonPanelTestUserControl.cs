@@ -1,9 +1,9 @@
-﻿using Core.Enums;
+using System.Drawing.Drawing2D;
+using System.Reflection;
+using Core.Enums;
 using Core.Interfaces.GUI;
 using Core.Models;
 using Core.Models.Services;
-using System.Drawing.Drawing2D;
-using System.Reflection;
 
 namespace GUI.Windows.Views
 {
@@ -192,11 +192,17 @@ namespace GUI.Windows.Views
             // Aggiungi un handler Paint per disegnare il bordo arrotondato
             btn.Paint += (sender, e) =>
             {
-                if (sender is not Button b) return;
+                if (sender is not Button b)
+                {
+                    return;
+                }
 
                 // Disegna il bordo solo se il pulsante NON è selezionato (BackColor != colore selezione)
                 bool isSelected = b.BackColor == Color.FromArgb(0, 70, 128);
-                if (isSelected) return;
+                if (isSelected)
+                {
+                    return;
+                }
 
                 using GraphicsPath borderPath = new();
                 int r = radius;
@@ -232,7 +238,7 @@ namespace GUI.Windows.Views
                 btn.ForeColor = Color.White;
 
                 // Resetta gli altri bottoni
-                foreach (var b in panelButtonPanelSelection.Controls.OfType<Button>())
+                foreach (Button b in panelButtonPanelSelection.Controls.OfType<Button>())
                 {
                     if (b != btn)
                     {
@@ -254,7 +260,9 @@ namespace GUI.Windows.Views
         private void ButtonSelectTest_Click(object? sender, EventArgs e)
         {
             if (sender is not Button btn)
+            {
                 return;
+            }
 
             if (btn.Tag == null)
             {
@@ -269,7 +277,7 @@ namespace GUI.Windows.Views
             btn.ForeColor = Color.White;
 
             // Resetta gli altri bottoni
-            foreach (var b in panelTestSelection.Controls.OfType<Button>())
+            foreach (Button b in panelTestSelection.Controls.OfType<Button>())
             {
                 if (b != btn)
                 {
@@ -283,7 +291,7 @@ namespace GUI.Windows.Views
         // Restituisce i test disponibili per un tipo di pulsantiera
         private static ButtonPanelTestType[] GetAvailableTests(ButtonPanelType panelType)
         {
-            ButtonPanel panel = ButtonPanel.GetByType(panelType);
+            var panel = ButtonPanel.GetByType(panelType);
             List<ButtonPanelTestType> availableTestTypes = [.. Enum.GetValues<ButtonPanelTestType>().Cast<ButtonPanelTestType>()];
 
             // Rimuovi Led se non supportato
@@ -312,18 +320,24 @@ namespace GUI.Windows.Views
                 byte[]? imgBytes = null;
                 try
                 {
-                    var obj = Properties.Resources.ResourceManager.GetObject(panelType.ToString(), Properties.Resources.Culture);
-                    if (obj is byte[] b && b.Length > 0) imgBytes = b;
+                    object? obj = Properties.Resources.ResourceManager.GetObject(panelType.ToString(), Properties.Resources.Culture);
+                    if (obj is byte[] b && b.Length > 0)
+                    {
+                        imgBytes = b;
+                    }
                 }
                 catch { }
 
                 if (imgBytes == null)
                 {
-                    var prop = typeof(Properties.Resources).GetProperty(panelType.ToString(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+                    PropertyInfo? prop = typeof(Properties.Resources).GetProperty(panelType.ToString(), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
                     if (prop != null)
                     {
-                        var val = prop.GetValue(null);
-                        if (val is byte[] b2 && b2.Length > 0) imgBytes = b2;
+                        object? val = prop.GetValue(null);
+                        if (val is byte[] b2 && b2.Length > 0)
+                        {
+                            imgBytes = b2;
+                        }
                     }
                 }
 
@@ -337,7 +351,7 @@ namespace GUI.Windows.Views
                 else
                 {
                     // Fallback to file-based loading (same relative path as before)
-                    var filePath = System.IO.Path.Combine(AppContext.BaseDirectory, "images", "ButtonPanels", $"{panelType}.jpg");
+                    string filePath = System.IO.Path.Combine(AppContext.BaseDirectory, "images", "ButtonPanels", $"{panelType}.jpg");
                     if (System.IO.File.Exists(filePath))
                     {
                         pictureBoxImage.Image?.Dispose();
@@ -359,7 +373,7 @@ namespace GUI.Windows.Views
         // Metodo per aggiornare gli indicatori dei pulsanti
         private void UpdateButtonIndicators(ButtonPanelType panelType)
         {
-            if (!_buttonRegions.TryGetValue(panelType, out var regions))
+            if (!_buttonRegions.TryGetValue(panelType, out List<RectangleF>? regions))
             {
                 _buttonIndicators.Clear();
                 pictureBoxImage.Invalidate();
@@ -378,12 +392,15 @@ namespace GUI.Windows.Views
         // Gestore per disegnare gli indicatori sui pulsanti
         private void PictureBoxImage_Paint(object? sender, PaintEventArgs e)
         {
-            if (_buttonIndicators.Count == 0) return;
+            if (_buttonIndicators.Count == 0)
+            {
+                return;
+            }
 
-            var g = e.Graphics;
+            Graphics g = e.Graphics;
             g.SmoothingMode = SmoothingMode.AntiAlias;
 
-            foreach (var indicator in _buttonIndicators)
+            foreach (ButtonIndicator indicator in _buttonIndicators)
             {
                 var rect = new Rectangle(
                     (int)(indicator.Bounds.X * pictureBoxImage.Width),
@@ -473,8 +490,10 @@ namespace GUI.Windows.Views
                 return;
             }
 
-            foreach (var ind in _buttonIndicators)
+            foreach (ButtonIndicator ind in _buttonIndicators)
+            {
                 ind.State = IndicatorState.Idle;
+            }
 
             pictureBoxImage.Invalidate();
         }
@@ -565,7 +584,7 @@ namespace GUI.Windows.Views
                     richTextBoxTestResult.AppendText(Environment.NewLine);
                 }
 
-                foreach (var result in results)
+                foreach (ButtonPanelTestResult result in results)
                 {
                     // Mostra nome del collaudo
                     richTextBoxTestResult.AppendText($"Collaudo {result.TestType}: ");
@@ -593,7 +612,10 @@ namespace GUI.Windows.Views
                     string[] lines = result.Message.Split('\n');
                     foreach (string line in lines)
                     {
-                        if (string.IsNullOrWhiteSpace(line)) continue;
+                        if (string.IsNullOrWhiteSpace(line))
+                        {
+                            continue;
+                        }
 
                         if (line.Contains("interrotto"))
                         {
@@ -680,7 +702,7 @@ namespace GUI.Windows.Views
             }
 
             string title = $"Conferma collaudo {testType}";
-            var result = MessageBox.Show(ParentForm, message, title,
+            bool result = MessageBox.Show(ParentForm, message, title,
                 MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes;
             return Task.FromResult(result);
         }
@@ -793,7 +815,7 @@ namespace GUI.Windows.Views
                 return (bool)Invoke(ShowUnsavedResultsWarning);
             }
 
-            var result = MessageBox.Show(
+            DialogResult result = MessageBox.Show(
                 ParentForm,
                 "⚠️ ATTENZIONE ⚠️\n\n" +
                 "L'ultimo collaudo non è stato salvato.\n\n" +
@@ -846,10 +868,14 @@ namespace GUI.Windows.Views
         public static Stream? GetResourceStream(Assembly asm, string resourcePathSuffix)
         {
             // resourcePathSuffix expected like "Resources.Images.filename.jpg"
-            var names = asm.GetManifestResourceNames();
+            string[] names = asm.GetManifestResourceNames();
             // Try to find matching resource name ending with the suffix
-            var matched = names.FirstOrDefault(n => n.EndsWith(resourcePathSuffix, StringComparison.OrdinalIgnoreCase));
-            if (matched == null) return null;
+            string? matched = names.FirstOrDefault(n => n.EndsWith(resourcePathSuffix, StringComparison.OrdinalIgnoreCase));
+            if (matched == null)
+            {
+                return null;
+            }
+
             return asm.GetManifestResourceStream(matched);
         }
     }

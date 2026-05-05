@@ -1,6 +1,5 @@
-﻿using Core.Enums;
-
 using System.Drawing;
+using Core.Enums;
 
 namespace Core.Models
 {

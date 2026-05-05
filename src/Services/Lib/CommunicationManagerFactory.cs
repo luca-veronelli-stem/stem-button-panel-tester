@@ -1,4 +1,4 @@
-﻿using Communication;
+using Communication;
 using Core.Enums;
 using Core.Interfaces.Communication;
 

@@ -49,7 +49,7 @@ namespace Services.Models
         /// </summary>
         public static PanelTypeConfiguration GetConfiguration(ButtonPanelType panelType)
         {
-            return _configurations.TryGetValue(panelType, out var config)
+            return _configurations.TryGetValue(panelType, out PanelTypeConfiguration? config)
                 ? config
                 : _configurations[ButtonPanelType.DIS0023789]; // Default Eden
         }

@@ -1,4 +1,4 @@
-﻿using Communication.Protocol.Layers;
+using Communication.Protocol.Layers;
 using Communication.Protocol.Lib;
 using Core.Enums;
 using Core.Interfaces.Communication;

@@ -1,4 +1,4 @@
-﻿using Core.Models.Communication;
+using Core.Models.Communication;
 
 namespace Core.Interfaces.Infrastructure
 {

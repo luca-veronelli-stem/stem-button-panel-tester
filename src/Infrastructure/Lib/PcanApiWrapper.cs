@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Peak.Can.Basic;
 
 namespace Infrastructure.Lib
@@ -35,7 +35,7 @@ namespace Infrastructure.Lib
         {
             _logger.LogDebug("Initialize: channel={Channel}, baudRate={BaudRate}", channel, baudRate);
 
-            var status = Api.Initialize(channel, baudRate);
+            PcanStatus status = Api.Initialize(channel, baudRate);
 
             _logger.LogDebug("Initialize result: {Status}", status);
 
@@ -51,7 +51,7 @@ namespace Infrastructure.Lib
         {
             _logger.LogDebug("Uninitialize: channel={Channel}", channel);
 
-            var status = Api.Uninitialize(channel);
+            PcanStatus status = Api.Uninitialize(channel);
 
             _logger.LogDebug("Uninitialize result: {Status}", status);
 
@@ -71,12 +71,12 @@ namespace Infrastructure.Lib
         /// </remarks>
         public PcanStatus Read(PcanChannel channel, out PcanMessage message, out ulong timestampMicros)
         {
-            var status = Api.Read(channel, out message, out timestampMicros);
+            PcanStatus status = Api.Read(channel, out message, out timestampMicros);
 
             if (status == PcanStatus.OK)
             {
                 // Copia i dati per garantire stabilità del buffer
-                var data = new byte[8];
+                byte[] data = new byte[8];
                 for (int i = 0; i < message.DLC && i < 8; i++)
                 {
                     data[i] = message.Data[i];
@@ -114,7 +114,7 @@ namespace Infrastructure.Lib
             _logger.LogDebug("Write: ID=0x{Id:X8}, DLC={Dlc}, Type={MsgType}",
                 message.ID, message.DLC, message.MsgType);
 
-            var status = Api.Write(channel, message);
+            PcanStatus status = Api.Write(channel, message);
 
             _logger.LogDebug("Write result: {Status}", status);
 

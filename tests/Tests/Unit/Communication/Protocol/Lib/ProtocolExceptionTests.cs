@@ -135,7 +135,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ProtocolException_PropagatesInnerExceptionStackTrace()
         {
             // Arrange
-            var innerException = CaptureException(() => throw new InvalidOperationException("inner"));
+            Exception innerException = CaptureException(() => throw new InvalidOperationException("inner"));
 
             // Act
             var exception = new ProtocolException("outer", innerException);

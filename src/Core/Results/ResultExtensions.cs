@@ -10,10 +10,12 @@ public static class ResultExtensions
     /// </summary>
     public static Result Combine(params Result[] results)
     {
-        foreach (var result in results)
+        foreach (Result result in results)
         {
             if (result.IsFailure)
+            {
                 return result;
+            }
         }
         return Result.Success();
     }
@@ -27,7 +29,10 @@ public static class ResultExtensions
         for (int i = 0; i < results.Length; i++)
         {
             if (results[i].IsFailure)
+            {
                 return Result<T[]>.Failure(results[i].Error);
+            }
+
             values[i] = results[i].Value;
         }
         return Result<T[]>.Success(values);
@@ -133,7 +138,9 @@ public static class ResultExtensions
         string errorMessage)
     {
         if (result.IsFailure)
+        {
             return result;
+        }
 
         return predicate(result.Value)
             ? result
@@ -149,7 +156,9 @@ public static class ResultExtensions
         Error error)
     {
         if (result.IsFailure)
+        {
             return result;
+        }
 
         return predicate(result.Value) ? result : Result<T>.Failure(error);
     }
@@ -162,7 +171,10 @@ public static class ResultExtensions
         Func<T, Task> action)
     {
         if (result.IsSuccess)
+        {
             await action(result.Value).ConfigureAwait(false);
+        }
+
         return result;
     }
 
@@ -174,7 +186,10 @@ public static class ResultExtensions
         Func<Task> action)
     {
         if (result.IsSuccess)
+        {
             await action().ConfigureAwait(false);
+        }
+
         return result;
     }
 
@@ -197,7 +212,7 @@ public static class ResultExtensions
         this Task<Result<T>> resultTask,
         Func<T, Task<Result<TNew>>> binder)
     {
-        var result = await resultTask.ConfigureAwait(false);
+        Result<T> result = await resultTask.ConfigureAwait(false);
         return await result.BindAsync(binder).ConfigureAwait(false);
     }
 
@@ -208,7 +223,7 @@ public static class ResultExtensions
         this Task<Result<T>> resultTask,
         Func<T, TNew> mapper)
     {
-        var result = await resultTask.ConfigureAwait(false);
+        Result<T> result = await resultTask.ConfigureAwait(false);
         return result.Map(mapper);
     }
 
@@ -220,7 +235,7 @@ public static class ResultExtensions
         Func<T, TResult> onSuccess,
         Func<Error, TResult> onFailure)
     {
-        var result = await resultTask.ConfigureAwait(false);
+        Result<T> result = await resultTask.ConfigureAwait(false);
         return result.Match(onSuccess, onFailure);
     }
 }

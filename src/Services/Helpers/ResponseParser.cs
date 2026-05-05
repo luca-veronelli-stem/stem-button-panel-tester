@@ -14,7 +14,9 @@ namespace Services.Helpers
             result = default;
 
             if (response.Length < 15)
+            {
                 return false;
+            }
 
             result = new WhoAmIResponse
             {
@@ -35,7 +37,7 @@ namespace Services.Helpers
         }
 
         /// <summary>
-        /// Verifica se una risposta è un ACK per un comando specifico.
+        /// Verifica se una risposta Ã¨ un ACK per un comando specifico.
         /// Formato ACK: 0x80, COMMAND_ID
         /// </summary>
         public static bool IsAcknowledgment(byte[] data, ushort commandId)

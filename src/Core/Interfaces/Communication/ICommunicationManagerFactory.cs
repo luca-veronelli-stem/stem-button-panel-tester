@@ -1,4 +1,4 @@
-﻿using Core.Enums;
+using Core.Enums;
 
 namespace Core.Interfaces.Communication
 {

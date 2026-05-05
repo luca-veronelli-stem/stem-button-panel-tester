@@ -1,4 +1,4 @@
-﻿namespace Core.Interfaces.Data
+namespace Core.Interfaces.Data
 {
     public interface IProtocolRepository
     {

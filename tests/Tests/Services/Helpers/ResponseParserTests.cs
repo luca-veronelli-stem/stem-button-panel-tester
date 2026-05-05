@@ -21,7 +21,7 @@ namespace Tests.Services.Helpers
             };
 
             // Act
-            bool success = ResponseParser.TryParseWhoAmI(response, out var result);
+            bool success = ResponseParser.TryParseWhoAmI(response, out WhoAmIResponse result);
 
             // Assert
             Assert.True(success);
@@ -39,7 +39,7 @@ namespace Tests.Services.Helpers
             byte[] response = new byte[] { 0x03, 0x00, 0x04 }; // Solo 3 bytes
 
             // Act
-            bool success = ResponseParser.TryParseWhoAmI(response, out var result);
+            bool success = ResponseParser.TryParseWhoAmI(response, out WhoAmIResponse result);
 
             // Assert
             Assert.False(success);
@@ -55,7 +55,7 @@ namespace Tests.Services.Helpers
             response[2] = 0x04;  // FW_TYPE_L
 
             // Act
-            bool success = ResponseParser.TryParseWhoAmI(response, out var result);
+            bool success = ResponseParser.TryParseWhoAmI(response, out WhoAmIResponse result);
 
             // Assert
             Assert.True(success);
@@ -158,7 +158,7 @@ namespace Tests.Services.Helpers
             response[2] = 0x34;  // FW_TYPE_L
 
             // Act
-            bool success = ResponseParser.TryParseWhoAmI(response, out var result);
+            bool success = ResponseParser.TryParseWhoAmI(response, out WhoAmIResponse result);
 
             // Assert
             Assert.True(success);

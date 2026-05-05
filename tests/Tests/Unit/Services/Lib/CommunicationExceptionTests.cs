@@ -125,7 +125,7 @@ namespace Tests.Unit.Services.Lib
         public void CommunicationException_PropagatesInnerExceptionStackTrace()
         {
             // Arrange
-            var innerException = CaptureException(() => throw new TimeoutException("timeout"));
+            Exception innerException = CaptureException(() => throw new TimeoutException("timeout"));
 
             // Act
             var exception = new CommunicationException("outer", innerException);

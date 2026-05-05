@@ -1,4 +1,4 @@
-﻿namespace Core.Interfaces.Data
+namespace Core.Interfaces.Data
 {
     /// <summary>
     /// Contratto per una factory che crea istanze di IProtocolRepository

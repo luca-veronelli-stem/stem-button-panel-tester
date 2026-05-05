@@ -1,4 +1,4 @@
-﻿using Core.Interfaces.Data;
+using Core.Interfaces.Data;
 
 namespace Data
 {

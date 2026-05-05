@@ -1,7 +1,8 @@
-﻿using Core.Enums;
+using Core.Enums;
 using Core.Interfaces.Communication;
 using Core.Interfaces.Services;
 using Core.Models;
+using Core.Models.Communication;
 using Core.Results;
 using Services.Models;
 
@@ -49,10 +50,14 @@ namespace Services
             CancellationToken cancellationToken = default)
         {
             if (_disposed)
+            {
                 return Result.Failure(ErrorCodes.InvalidOperation, "Service has been disposed.");
+            }
 
             if (cancellationToken.IsCancellationRequested)
+            {
                 return Result.Failure(ErrorCodes.Cancelled, "Operation was cancelled.");
+            }
 
             if (_currentManager != null && _activeChannel == channel && _currentManager.IsConnected)
             {
@@ -66,9 +71,11 @@ namespace Services
             }
 
             if (cancellationToken.IsCancellationRequested)
+            {
                 return Result.Failure(ErrorCodes.Cancelled, "Operation was cancelled.");
+            }
 
-            var newManager = _managerFactory.Create(channel);
+            ICommunicationManager newManager = _managerFactory.Create(channel);
 
             try
             {
@@ -109,17 +116,21 @@ namespace Services
             CancellationToken cancellationToken = default)
         {
             if (_disposed)
+            {
                 return Result<byte[]>.Failure(ErrorCodes.InvalidOperation, "Service has been disposed.");
+            }
 
-            var channelResult = EnsureConnectedChannel();
+            Result channelResult = EnsureConnectedChannel();
             if (channelResult.IsFailure)
+            {
                 return Result<byte[]>.Failure(channelResult.Error);
+            }
 
             try
             {
-                var packets = _protocolManager.BuildPackets(command, payload, _senderId, _recipientId, _currentManager!.MaxPacketSize - 2);
+                List<NetworkPacketChunk> packets = _protocolManager.BuildPackets(command, payload, _senderId, _recipientId, _currentManager!.MaxPacketSize - 2);
 
-                foreach (var packet in packets)
+                foreach (NetworkPacketChunk packet in packets)
                 {
                     bool success = await _currentManager.SendAsync([.. packet.NetInfo, .. packet.Chunk], packet.Id).ConfigureAwait(false);
                     if (!success)
@@ -172,9 +183,9 @@ namespace Services
                 using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
                 cts.CancelAfter(timeoutMs);
 
-                using var registration = cts.Token.Register(() => tcs.TrySetCanceled(cts.Token));
+                using CancellationTokenRegistration registration = cts.Token.Register(() => tcs.TrySetCanceled(cts.Token));
 
-                var response = await tcs.Task.ConfigureAwait(false);
+                byte[] response = await tcs.Task.ConfigureAwait(false);
                 return Result<byte[]>.Success(response);
             }
             catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -198,14 +209,20 @@ namespace Services
         public async Task<Result> SendRawPacketAsync(uint arbitrationId, byte[] data, CancellationToken cancellationToken = default)
         {
             if (_disposed)
+            {
                 return Result.Failure(ErrorCodes.InvalidOperation, "Service has been disposed.");
+            }
 
-            var channelResult = EnsureConnectedChannel();
+            Result channelResult = EnsureConnectedChannel();
             if (channelResult.IsFailure)
+            {
                 return channelResult;
+            }
 
             if (cancellationToken.IsCancellationRequested)
+            {
                 return Result.Failure(ErrorCodes.Cancelled, "Operation was cancelled.");
+            }
 
             try
             {
@@ -243,10 +260,14 @@ namespace Services
         public async Task<Result> DisconnectActiveChannelAsync(CancellationToken cancellationToken = default)
         {
             if (_disposed)
+            {
                 return Result.Failure(ErrorCodes.InvalidOperation, "Service has been disposed.");
+            }
 
             if (_currentManager == null)
+            {
                 return Result.Success(); // Già disconnesso
+            }
 
             try
             {
@@ -262,10 +283,14 @@ namespace Services
         private Result EnsureConnectedChannel()
         {
             if (_currentManager == null)
+            {
                 return Result.Failure(ErrorCodes.NoActiveChannel, "No active communication channel.");
+            }
 
             if (!_currentManager.IsConnected)
+            {
                 return Result.Failure(ErrorCodes.ChannelNotConnected, "Communication channel is not connected.");
+            }
 
             return Result.Success();
         }
@@ -286,7 +311,10 @@ namespace Services
 
         private async Task CleanupCurrentManagerAsync(CancellationToken cancellationToken)
         {
-            if (_currentManager == null) return;
+            if (_currentManager == null)
+            {
+                return;
+            }
 
             UnsubscribeFromManagerEvents(_currentManager);
             await _currentManager.DisconnectAsync(cancellationToken).ConfigureAwait(false);
@@ -306,7 +334,7 @@ namespace Services
 
         private void OnPacketReceived(object? sender, byte[] data)
         {
-            var result = _protocolManager.ProcessReceivedPacket(data);
+            byte[] result = _protocolManager.ProcessReceivedPacket(data);
         }
 
         private void OnRawPacketReceived(uint arbitrationId, byte[] data)

@@ -27,12 +27,14 @@ namespace Services.Helpers
         public static byte[] BuildSetAddressPayload(byte[] uuid, uint stemAddress)
         {
             if (uuid.Length != 12)
+            {
                 throw new ArgumentException("UUID deve essere di 12 bytes", nameof(uuid));
+            }
 
-            var payload = new byte[16];
+            byte[] payload = new byte[16];
             Array.Copy(uuid, 0, payload, 0, 12);
 
-            // STEM address in big-endian (il firmware farà OSdwordSwap)
+            // STEM address in big-endian (il firmware farÃ  OSdwordSwap)
             payload[12] = (byte)((stemAddress >> 24) & 0xFF);
             payload[13] = (byte)((stemAddress >> 16) & 0xFF);
             payload[14] = (byte)((stemAddress >> 8) & 0xFF);

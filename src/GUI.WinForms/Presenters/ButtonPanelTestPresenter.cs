@@ -1,4 +1,4 @@
-﻿using Core.Enums;
+using Core.Enums;
 using Core.Interfaces.Data;
 using Core.Interfaces.GUI;
 using Core.Interfaces.Services;
@@ -54,7 +54,7 @@ namespace GUI.Windows.Presenters
                 return;
             }
 
-            var filePath = _view.ShowSaveNewFileDialog();
+            string? filePath = _view.ShowSaveNewFileDialog();
 
             if (string.IsNullOrEmpty(filePath))
             {
@@ -96,7 +96,7 @@ namespace GUI.Windows.Presenters
             }
 
             // Usa il file precedentemente selezionato se disponibile, altrimenti chiedi di selezionarne uno
-            var filePath = _view.GetLastSavedFilePath();
+            string? filePath = _view.GetLastSavedFilePath();
 
             if (string.IsNullOrEmpty(filePath) || !File.Exists(filePath))
             {
@@ -193,7 +193,7 @@ namespace GUI.Windows.Presenters
                 _view.ShowProgress("Preparazione battezzamento e impostazione indirizzo del dispositivo...");
                 _view.SetBaptizeStatus(BaptizeStatus.InProgress);
 
-                var reassign = await _service.ReassignAddressAsync(panelType, cancellationToken: _cts.Token).ConfigureAwait(false);
+                BaptizeResult reassign = await _service.ReassignAddressAsync(panelType, cancellationToken: _cts.Token).ConfigureAwait(false);
                 if (reassign.Success)
                 {
                     _view.ShowProgress($"Dispositivo impostato a 0x{reassign.AssignedAddress:X8}");

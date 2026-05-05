@@ -1,4 +1,4 @@
-﻿using Core.Models;
+using Core.Models;
 using Core.Models.Communication;
 
 namespace Core.Interfaces.Communication

@@ -1,4 +1,4 @@
-﻿using Core.Models.Data;
+using Core.Models.Data;
 
 namespace Core.Interfaces.Data
 {

@@ -31,7 +31,13 @@ namespace Tests.Helpers
         /// </summary>
         public IReadOnlyList<AppLayerDecoderEventArgs> DecodedEvents
         {
-            get { lock (_lock) return _decodedEvents.ToList(); }
+            get
+            {
+                lock (_lock)
+                {
+                    return _decodedEvents.ToList();
+                }
+            }
         }
 
         /// <summary>
@@ -39,7 +45,13 @@ namespace Tests.Helpers
         /// </summary>
         public IReadOnlyList<ProtocolErrorEventArgs> ErrorEvents
         {
-            get { lock (_lock) return _errorEvents.ToList(); }
+            get
+            {
+                lock (_lock)
+                {
+                    return _errorEvents.ToList();
+                }
+            }
         }
 
         /// <summary>
@@ -47,7 +59,13 @@ namespace Tests.Helpers
         /// </summary>
         public AppLayerDecoderEventArgs? LastDecodedEvent
         {
-            get { lock (_lock) return _decodedEvents.LastOrDefault(); }
+            get
+            {
+                lock (_lock)
+                {
+                    return _decodedEvents.LastOrDefault();
+                }
+            }
         }
 
         /// <summary>
@@ -55,7 +73,13 @@ namespace Tests.Helpers
         /// </summary>
         public ProtocolErrorEventArgs? LastErrorEvent
         {
-            get { lock (_lock) return _errorEvents.LastOrDefault(); }
+            get
+            {
+                lock (_lock)
+                {
+                    return _errorEvents.LastOrDefault();
+                }
+            }
         }
 
         /// <summary>
@@ -63,7 +87,13 @@ namespace Tests.Helpers
         /// </summary>
         public int DecodeCount
         {
-            get { lock (_lock) return _decodedEvents.Count; }
+            get
+            {
+                lock (_lock)
+                {
+                    return _decodedEvents.Count;
+                }
+            }
         }
 
         /// <summary>
@@ -71,7 +101,13 @@ namespace Tests.Helpers
         /// </summary>
         public int ErrorCount
         {
-            get { lock (_lock) return _errorEvents.Count; }
+            get
+            {
+                lock (_lock)
+                {
+                    return _errorEvents.Count;
+                }
+            }
         }
 
         /// <summary>
@@ -116,7 +152,7 @@ namespace Tests.Helpers
         public byte[] ProcessAllPackets(IEnumerable<NetworkPacketChunk> packets)
         {
             byte[] result = [];
-            foreach (var packet in packets)
+            foreach (NetworkPacketChunk packet in packets)
             {
                 result = ProcessPacket(packet);
             }
@@ -133,7 +169,7 @@ namespace Tests.Helpers
             uint recipientId = 456,
             int chunkSize = 100)
         {
-            var packets = BuildPackets(command, payload, senderId, recipientId, chunkSize);
+            IReadOnlyList<NetworkPacketChunk> packets = BuildPackets(command, payload, senderId, recipientId, chunkSize);
             return ProcessAllPackets(packets);
         }
 
@@ -161,12 +197,18 @@ namespace Tests.Helpers
 
         private void OnCommandDecoded(object? sender, AppLayerDecoderEventArgs e)
         {
-            lock (_lock) _decodedEvents.Add(e);
+            lock (_lock)
+            {
+                _decodedEvents.Add(e);
+            }
         }
 
         private void OnErrorOccurred(object? sender, ProtocolErrorEventArgs e)
         {
-            lock (_lock) _errorEvents.Add(e);
+            lock (_lock)
+            {
+                _errorEvents.Add(e);
+            }
         }
 
         public void Dispose()

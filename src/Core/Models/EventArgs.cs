@@ -1,4 +1,4 @@
-﻿namespace Core.Models
+namespace Core.Models
 {
     /// <summary>
     /// Argomenti evento per la decodifica del livello applicativo.

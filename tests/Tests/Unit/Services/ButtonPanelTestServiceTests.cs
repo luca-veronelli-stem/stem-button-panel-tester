@@ -1,4 +1,5 @@
-﻿using Core.Enums;
+using System.Reflection;
+using Core.Enums;
 using Core.Interfaces.Data;
 using Core.Interfaces.Services;
 using Core.Models;
@@ -6,7 +7,6 @@ using Core.Models.Services;
 using Core.Results;
 using Moq;
 using Services;
-using System.Reflection;
 
 namespace Tests.Unit.Services
 {
@@ -34,7 +34,7 @@ namespace Tests.Unit.Services
         {
             ICommunicationService nullCommunicationService = null!;
 
-            var exception = Assert.Throws<ArgumentNullException>(() =>
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
                 new ButtonPanelTestService(nullCommunicationService, _mockBaptizeService.Object, _mockProtocolRepository.Object));
 
             Assert.Equal("communicationService", exception.ParamName);
@@ -45,7 +45,7 @@ namespace Tests.Unit.Services
         {
             IBaptizeService nullBaptizeService = null!;
 
-            var exception = Assert.Throws<ArgumentNullException>(() =>
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
                 new ButtonPanelTestService(_mockCommunicationService.Object, nullBaptizeService, _mockProtocolRepository.Object));
 
             Assert.Equal("baptizeService", exception.ParamName);
@@ -56,7 +56,7 @@ namespace Tests.Unit.Services
         {
             IProtocolRepository nullProtocolRepository = null!;
 
-            var exception = Assert.Throws<ArgumentNullException>(() =>
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
                 new ButtonPanelTestService(_mockCommunicationService.Object, _mockBaptizeService.Object, nullProtocolRepository));
 
             Assert.Equal("protocolRepository", exception.ParamName);
@@ -66,7 +66,7 @@ namespace Tests.Unit.Services
         public void Constructor_Succeeds_With_Valid_Dependencies()
         {
             ButtonPanelTestService sut = null!;
-            var exception = Record.Exception(() =>
+            Exception exception = Record.Exception(() =>
             {
                 sut = new ButtonPanelTestService(
                     _mockCommunicationService.Object,
@@ -87,7 +87,7 @@ namespace Tests.Unit.Services
         {
             var sut = new ButtonPanelTestService(_mockCommunicationService.Object, _mockBaptizeService.Object, _mockProtocolRepository.Object);
 
-            var exception = Assert.Throws<ArgumentNullException>(() => sut.SetProtocolRepository(null!));
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() => sut.SetProtocolRepository(null!));
 
             Assert.Equal("repository", exception.ParamName);
         }
@@ -100,10 +100,10 @@ namespace Tests.Unit.Services
 
             sut.SetProtocolRepository(newMockRepo.Object);
 
-            var protocolField = typeof(ButtonPanelTestService)
+            FieldInfo? protocolField = typeof(ButtonPanelTestService)
                 .GetField("_protocolRepository", BindingFlags.NonPublic | BindingFlags.Instance);
             Assert.NotNull(protocolField);
-            var updatedRepo = protocolField.GetValue(sut);
+            object? updatedRepo = protocolField.GetValue(sut);
             Assert.Same(newMockRepo.Object, updatedRepo);
         }
 
@@ -115,7 +115,7 @@ namespace Tests.Unit.Services
         public async Task TestAllAsync_Successful_Full_Test_All_Pass()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupRepositoryMocks();
@@ -132,7 +132,9 @@ namespace Tests.Unit.Services
                     {
                         // Wait until userPrompt is called (service is ready for button press)
                         if (!await promptSignal.WaitAsync(2000))
+                        {
                             return;
+                        }
 
                         await Task.Delay(10);
 
@@ -149,7 +151,7 @@ namespace Tests.Unit.Services
                         if (buttonIndex < panel.ButtonMasks.Count)
                         {
                             byte buttonMask = panel.ButtonMasks[buttonIndex];
-                            var buttonPressPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
+                            byte[] buttonPressPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
                             var args = new AppLayerDecoderEventArgs(buttonPressPayload);
                             _mockCommunicationService.Raise(m => m.CommandDecoded += null, this, args);
                         }
@@ -167,7 +169,7 @@ namespace Tests.Unit.Services
                 TimeSpan.FromMilliseconds(500));
 
             // Act
-            var results = await sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert
             Assert.NotNull(results);
@@ -179,7 +181,7 @@ namespace Tests.Unit.Services
         public async Task TestAllAsync_Fails_On_Comm_Setup()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
 
             SetupRepositoryMocks();
 
@@ -197,7 +199,7 @@ namespace Tests.Unit.Services
                 TimeSpan.FromMilliseconds(100));
 
             // Act
-            var results = await sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert
             Assert.NotNull(results);
@@ -210,7 +212,7 @@ namespace Tests.Unit.Services
         public async Task TestAllAsync_Interrupted_At_Buttons()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
 
             SetupRepositoryMocks();
             SetupCommunicationMocks();
@@ -233,7 +235,7 @@ namespace Tests.Unit.Services
                 TimeSpan.FromMilliseconds(100));
 
             // Act
-            var results = await sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null, cts.Token);
+            List<ButtonPanelTestResult> results = await sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null, cts.Token);
 
             // Assert
             Assert.NotNull(results);
@@ -250,7 +252,7 @@ namespace Tests.Unit.Services
         public async Task TestButtonsAsync_All_Buttons_Pass()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupCommunicationMocks();
@@ -267,7 +269,9 @@ namespace Tests.Unit.Services
                     {
                         // Wait until userPrompt is called (service is ready for button press)
                         if (!await promptSignal.WaitAsync(2000))
+                        {
                             return;
+                        }
 
                         await Task.Delay(10);
 
@@ -284,7 +288,7 @@ namespace Tests.Unit.Services
                         if (buttonIndex < panel.ButtonMasks.Count)
                         {
                             byte buttonMask = panel.ButtonMasks[buttonIndex];
-                            var buttonPressPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
+                            byte[] buttonPressPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
                             var args = new AppLayerDecoderEventArgs(buttonPressPayload);
                             _mockCommunicationService.Raise(m => m.CommandDecoded += null, this, args);
                         }
@@ -301,7 +305,7 @@ namespace Tests.Unit.Services
                 TimeSpan.FromMilliseconds(500));
 
             // Act
-            var result = await sut.TestButtonsAsync(panelType, userPrompt, null, null);
+            ButtonPanelTestResult result = await sut.TestButtonsAsync(panelType, userPrompt, null, null);
 
             // Assert
             Assert.NotNull(result);
@@ -313,7 +317,7 @@ namespace Tests.Unit.Services
         public async Task TestButtonsAsync_Interrupted_By_User()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
 
             SetupCommunicationMocks();
 
@@ -327,7 +331,7 @@ namespace Tests.Unit.Services
                 TimeSpan.FromMilliseconds(100));
 
             // Act
-            var result = await sut.TestButtonsAsync(panelType, userPrompt, null, null);
+            ButtonPanelTestResult result = await sut.TestButtonsAsync(panelType, userPrompt, null, null);
 
             // Assert
             Assert.NotNull(result);
@@ -343,7 +347,7 @@ namespace Tests.Unit.Services
         public async Task TestLedAsync_Passes_With_All_Confirms_True()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
 
             SetupRepositoryMocks();
             SetupCommunicationMocks();
@@ -356,7 +360,7 @@ namespace Tests.Unit.Services
                 _mockProtocolRepository.Object);
 
             // Act
-            var result = await sut.TestLedAsync(panelType, userConfirm);
+            ButtonPanelTestResult result = await sut.TestLedAsync(panelType, userConfirm);
 
             // Assert
             Assert.NotNull(result);
@@ -368,7 +372,7 @@ namespace Tests.Unit.Services
         public async Task TestLedAsync_No_Led_On_Panel_Skips_Test()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0025205;
+            ButtonPanelType panelType = ButtonPanelType.DIS0025205;
             var panel = ButtonPanel.GetByType(panelType);
 
             Assert.False(panel.HasLed);
@@ -381,7 +385,7 @@ namespace Tests.Unit.Services
                 _mockProtocolRepository.Object);
 
             // Act
-            var result = await sut.TestLedAsync(panelType, userConfirm);
+            ButtonPanelTestResult result = await sut.TestLedAsync(panelType, userConfirm);
 
             // Assert
             Assert.NotNull(result);

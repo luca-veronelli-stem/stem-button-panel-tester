@@ -1,4 +1,4 @@
-﻿namespace Core.Models.Communication
+namespace Core.Models.Communication
 {
     /// <summary>
     /// Rappresenta un chunk di pacchetto di rete pronto per la trasmissione.

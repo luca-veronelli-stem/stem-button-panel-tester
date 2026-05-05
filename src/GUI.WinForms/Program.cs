@@ -1,3 +1,8 @@
+using System.Diagnostics;
+using System.Globalization;
+using System.Reflection;
+using System.Runtime.InteropServices;
+using System.Text;
 using Communication;
 using Communication.Protocol;
 using Core.Interfaces.Communication;
@@ -11,11 +16,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Services;
 using Services.Lib;
-using System.Diagnostics;
-using System.Globalization;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
 
 namespace GUI.Windows
 {
@@ -55,13 +55,13 @@ namespace GUI.Windows
         static async Task Main()
         {
             // Prepare base information and log path as early as possible
-            var baseDir = AppContext.BaseDirectory;
-            var logsDir = Path.Combine(baseDir, "logs");
+            string baseDir = AppContext.BaseDirectory;
+            string logsDir = Path.Combine(baseDir, "logs");
             Directory.CreateDirectory(logsDir);
-            var logFile = Path.Combine(logsDir, $"startup_{DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)}.log");
+            string logFile = Path.Combine(logsDir, $"startup_{DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)}.log");
 
             // Create an early LoggerFactory that writes to console/debug/file so we can trace startup issues
-            using var loggerFactory = LoggerFactory.Create(builder =>
+            using ILoggerFactory loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.SetMinimumLevel(LogLevel.Trace);
                 builder.AddConsole();
@@ -69,7 +69,7 @@ namespace GUI.Windows
                 builder.AddProvider(new FileLoggerProvider(logFile));
             });
 
-            var logger = loggerFactory.CreateLogger("Startup");
+            ILogger logger = loggerFactory.CreateLogger("Startup");
             logger.LogInformation("Application starting. BaseDirectory='{BaseDir}', ProcessId={Pid}, OS={OS}, Architecture={Arch}, Framework={Framework}",
                 baseDir, Environment.ProcessId, RuntimeInformation.OSDescription, RuntimeInformation.ProcessArchitecture, RuntimeInformation.FrameworkDescription);
 
@@ -120,16 +120,19 @@ namespace GUI.Windows
                 // Imposta repositories
                 string excelFilePath;
                 // Prefer embedded resource only: extract and use embedded 'StemDictionaries.xlsx' from Resources.resx
-                var resourcesDir = Path.Combine(baseDir, "Resources");
+                string resourcesDir = Path.Combine(baseDir, "Resources");
                 Directory.CreateDirectory(resourcesDir);
-                var excelOutPath = Path.Combine(resourcesDir, "StemDictionaries.xlsx");
+                string excelOutPath = Path.Combine(resourcesDir, "StemDictionaries.xlsx");
 
                 // Try ResourceManager first (key: "StemDictionaries"), then strongly-typed property
                 byte[]? excelBytes = null;
                 try
                 {
-                    var obj = Properties.Resources.ResourceManager.GetObject("StemDictionaries", Properties.Resources.Culture);
-                    if (obj is byte[] b && b.Length > 0) excelBytes = b;
+                    object? obj = Properties.Resources.ResourceManager.GetObject("StemDictionaries", Properties.Resources.Culture);
+                    if (obj is byte[] b && b.Length > 0)
+                    {
+                        excelBytes = b;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -140,11 +143,14 @@ namespace GUI.Windows
                 {
                     try
                     {
-                        var prop = typeof(Properties.Resources).GetProperty("StemDictionaries", BindingFlags.Public | BindingFlags.Static);
+                        PropertyInfo? prop = typeof(Properties.Resources).GetProperty("StemDictionaries", BindingFlags.Public | BindingFlags.Static);
                         if (prop != null)
                         {
-                            var val = prop.GetValue(null);
-                            if (val is byte[] b2 && b2.Length > 0) excelBytes = b2;
+                            object? val = prop.GetValue(null);
+                            if (val is byte[] b2 && b2.Length > 0)
+                            {
+                                excelBytes = b2;
+                            }
                         }
                     }
                     catch (Exception ex)
@@ -169,7 +175,7 @@ namespace GUI.Windows
                 services.AddTransient<IProtocolRepository>(sp =>
                 {
                     // Repository di default per recipientId = 0
-                    var factory = sp.GetRequiredService<IProtocolRepositoryFactory>();
+                    IProtocolRepositoryFactory factory = sp.GetRequiredService<IProtocolRepositoryFactory>();
                     return factory.Create(0);
                 });
 
@@ -178,8 +184,8 @@ namespace GUI.Windows
                 var preloadFactory = new ExcelProtocolRepositoryFactory(new ExcelRepository(), excelFilePath);
 
                 // Pre-load for the most common recipient IDs used in testing
-                var commonRecipientIds = new[] { 0x00030101u, 0x000A0101u, 0x000B0101u, 0x000C0101u };
-                foreach (var recipientId in commonRecipientIds)
+                uint[] commonRecipientIds = new[] { 0x00030101u, 0x000A0101u, 0x000B0101u, 0x000C0101u };
+                foreach (uint recipientId in commonRecipientIds)
                 {
                     try
                     {
@@ -207,11 +213,11 @@ namespace GUI.Windows
                 services.AddSingleton<IBaptizeService, BaptizeService>();
                 services.AddSingleton<IButtonPanelTestService>(sp =>
                 {
-                    var commService = sp.GetRequiredService<ICommunicationService>();
-                    var baptizeService = sp.GetRequiredService<IBaptizeService>();
-                    var protocolRepo = sp.GetRequiredService<IProtocolRepository>();
-                    var logger = sp.GetService<ILogger<ButtonPanelTestService>>();
-                    var canAdapter = sp.GetRequiredService<ICanAdapter>();
+                    ICommunicationService commService = sp.GetRequiredService<ICommunicationService>();
+                    IBaptizeService baptizeService = sp.GetRequiredService<IBaptizeService>();
+                    IProtocolRepository protocolRepo = sp.GetRequiredService<IProtocolRepository>();
+                    ILogger<ButtonPanelTestService>? logger = sp.GetService<ILogger<ButtonPanelTestService>>();
+                    ICanAdapter canAdapter = sp.GetRequiredService<ICanAdapter>();
 
                     var service = new ButtonPanelTestService(commService, baptizeService, protocolRepo, logger);
 
@@ -225,7 +231,7 @@ namespace GUI.Windows
                 services.AddTransient<Form1>();
 
                 // Costruisci il service provider and run
-                await using var serviceProvider = services.BuildServiceProvider();
+                await using ServiceProvider serviceProvider = services.BuildServiceProvider();
                 logger.LogInformation("ServiceProvider built successfully. Running application.");
                 Application.Run(serviceProvider.GetRequiredService<Form1>());
             }
@@ -271,8 +277,8 @@ namespace GUI.Windows
                 sb.AppendLine($"Culture: {CultureInfo.CurrentCulture.Name}");
                 sb.AppendLine("Environment variables PATH entries:");
 
-                var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-                var entries = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+                string path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+                string[] entries = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
                 for (int i = 0; i < entries.Length; i++)
                 {
                     sb.AppendLine($"  [{i}] {entries[i]}");
@@ -281,8 +287,11 @@ namespace GUI.Windows
                 try
                 {
                     sb.AppendLine("\nFiles in BaseDir:");
-                    var files = Directory.GetFiles(baseDir);
-                    foreach (var f in files.OrderBy(f => f)) sb.AppendLine("  " + Path.GetFileName(f));
+                    string[] files = Directory.GetFiles(baseDir);
+                    foreach (string? f in files.OrderBy(f => f))
+                    {
+                        sb.AppendLine("  " + Path.GetFileName(f));
+                    }
                 }
                 catch (Exception ex) { sb.AppendLine("  (unable to enumerate base dir) " + ex.Message); }
 
@@ -296,7 +305,7 @@ namespace GUI.Windows
                 }
                 catch (Exception ex) { sb.AppendLine("  (unable to enumerate process modules) " + ex.Message); }
 
-                var probePath = Path.Combine(baseDir, "pcan-probe.txt");
+                string probePath = Path.Combine(baseDir, "pcan-probe.txt");
                 File.WriteAllText(probePath, sb.ToString());
                 logger.LogInformation("Wrote basic environment probe to {ProbePath}", probePath);
             }
@@ -308,8 +317,8 @@ namespace GUI.Windows
 
         private static void PerformDetailedPcanProbes(ILogger logger)
         {
-            var baseDir = AppContext.BaseDirectory;
-            var outDir = Path.Combine(baseDir, "logs");
+            string baseDir = AppContext.BaseDirectory;
+            string outDir = Path.Combine(baseDir, "logs");
             Directory.CreateDirectory(outDir);
             var probeDetails = new StringBuilder();
             probeDetails.AppendLine($"Detailed PCAN probe: {DateTime.Now:O}");
@@ -324,13 +333,13 @@ namespace GUI.Windows
             };
 
             // Add copies found in PATH
-            var path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
-            var entries = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
-            foreach (var entry in entries)
+            string path = Environment.GetEnvironmentVariable("PATH") ?? string.Empty;
+            string[] entries = path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries);
+            foreach (string entry in entries)
             {
                 try
                 {
-                    var candidate = Path.Combine(entry, "PCANBasic.dll");
+                    string candidate = Path.Combine(entry, "PCANBasic.dll");
                     candidates.Add(candidate);
                 }
                 catch { }
@@ -339,7 +348,7 @@ namespace GUI.Windows
             // Make unique
             candidates = [.. candidates.Distinct(StringComparer.OrdinalIgnoreCase)];
 
-            foreach (var c in candidates)
+            foreach (string c in candidates)
             {
                 try
                 {
@@ -366,7 +375,7 @@ namespace GUI.Windows
                             }
                             else
                             {
-                                var err = Marshal.GetLastWin32Error();
+                                int err = Marshal.GetLastWin32Error();
                                 probeDetails.AppendLine($"  LoadLibrary: FAILED (Win32Err={err})");
                             }
                         }
@@ -394,7 +403,7 @@ namespace GUI.Windows
                 }
                 else
                 {
-                    var err = Marshal.GetLastWin32Error();
+                    int err = Marshal.GetLastWin32Error();
                     probeDetails.AppendLine($"  LoadLibrary by name: FAILED (Win32Err={err})");
                 }
             }
@@ -403,7 +412,7 @@ namespace GUI.Windows
                 probeDetails.AppendLine("  LoadLibrary by name probe failed: " + ex.Message);
             }
 
-            var probeFile = Path.Combine(outDir, "pcan-detailed-probe.txt");
+            string probeFile = Path.Combine(outDir, "pcan-detailed-probe.txt");
             try
             {
                 File.WriteAllText(probeFile, probeDetails.ToString());
@@ -420,9 +429,13 @@ namespace GUI.Windows
             try
             {
                 if (exceptionObject is Exception ex)
+                {
                     File.WriteAllText(errorFile, ex.ToString());
+                }
                 else
+                {
                     File.WriteAllText(errorFile, exceptionObject?.ToString() ?? "Unknown error object");
+                }
             }
             catch (Exception writeEx)
             {
@@ -436,9 +449,10 @@ namespace GUI.Windows
         /// it will extract from `Properties.Resources` (e.g. `StemDictionaries` key).
         /// </summary>
         /// <param name="resourceName">The name of the embedded resource (e.g., "Resources.StemDictionaries.xlsx" or "PCANBasic.dll").</param>
+        /// <param name="logger"></param>
         private static string ExtractEmbeddedResource(string resourceName, ILogger? logger = null)
         {
-            Assembly assembly = Assembly.GetExecutingAssembly();
+            var assembly = Assembly.GetExecutingAssembly();
             string namespacePrefix = assembly.GetName().Name + ".";
             string fullResourceName = namespacePrefix + resourceName;
 
@@ -477,7 +491,7 @@ namespace GUI.Windows
             // Try ResourceManager first
             try
             {
-                var obj = Properties.Resources.ResourceManager.GetObject(resourceKey, Properties.Resources.Culture);
+                object? obj = Properties.Resources.ResourceManager.GetObject(resourceKey, Properties.Resources.Culture);
                 if (obj is byte[] bytes && bytes.Length > 0)
                 {
                     File.WriteAllBytes(resourcePath, bytes);
@@ -489,10 +503,10 @@ namespace GUI.Windows
                 }
 
                 // Try strongly-typed property (in case resource is exposed as byte[] property)
-                var prop = typeof(Properties.Resources).GetProperty(resourceKey, BindingFlags.Public | BindingFlags.Static);
+                PropertyInfo? prop = typeof(Properties.Resources).GetProperty(resourceKey, BindingFlags.Public | BindingFlags.Static);
                 if (prop != null)
                 {
-                    var val = prop.GetValue(null);
+                    object? val = prop.GetValue(null);
                     if (val is byte[] b2 && b2.Length > 0)
                     {
                         File.WriteAllBytes(resourcePath, b2);
@@ -530,7 +544,10 @@ namespace GUI.Windows
                     try
                     {
                         data = Properties.Resources.PCANBasic;
-                        if (data == null || data.Length == 0) data = null;
+                        if (data == null || data.Length == 0)
+                        {
+                            data = null;
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -543,9 +560,12 @@ namespace GUI.Windows
                         // Try manifest or resources helper
                         try
                         {
-                            var manifestDir = ExtractEmbeddedResource("Resources." + resourceFileName, logger);
-                            var candidate = Path.Combine(manifestDir, "Resources." + resourceFileName);
-                            if (File.Exists(candidate)) File.Copy(candidate, outPath);
+                            string manifestDir = ExtractEmbeddedResource("Resources." + resourceFileName, logger);
+                            string candidate = Path.Combine(manifestDir, "Resources." + resourceFileName);
+                            if (File.Exists(candidate))
+                            {
+                                File.Copy(candidate, outPath);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -587,7 +607,7 @@ namespace GUI.Windows
                 {
                     if (!SetDefaultDllDirectories(LOAD_LIBRARY_SEARCH_DEFAULT_DIRS))
                     {
-                        var setErr = Marshal.GetLastWin32Error();
+                        int setErr = Marshal.GetLastWin32Error();
                         logger.LogWarning("SetDefaultDllDirectories failed (Win32Err={Win32}) - continuing", setErr);
                     }
                     else
@@ -606,7 +626,7 @@ namespace GUI.Windows
                     logger.LogWarning("AddDllDirectory returned false for {TempDir}; attempting SetDllDirectory", tempDir);
                     if (!SetDllDirectory(tempDir))
                     {
-                        var win32Err = Marshal.GetLastWin32Error();
+                        int win32Err = Marshal.GetLastWin32Error();
                         logger.LogError("Failed to set DLL directory. Win32Error={Win32}", win32Err);
                         throw new System.ComponentModel.Win32Exception(win32Err, "Failed to set DLL directory.");
                     }
@@ -622,7 +642,7 @@ namespace GUI.Windows
                     }
                     else
                     {
-                        var loadErr = Marshal.GetLastWin32Error();
+                        int loadErr = Marshal.GetLastWin32Error();
                         logger.LogWarning("Explicit LoadLibrary for extracted PCANBasic.dll failed (Win32Err={Win32}); kernel may still load the system copy by name. Continuing.", loadErr);
                     }
                 }
@@ -680,7 +700,11 @@ namespace GUI.Windows
             public void Log<TState>(LogLevel logLevel, EventId eventId,
                 TState state, Exception? exception, Func<TState, Exception?, string> formatter)
             {
-                if (!IsEnabled(logLevel)) return;
+                if (!IsEnabled(logLevel))
+                {
+                    return;
+                }
+
                 var sb = new StringBuilder();
                 sb.Append('[').Append(DateTime.Now.ToString("o")).Append("] ");
                 sb.Append(logLevel.ToString()).Append(" - ");

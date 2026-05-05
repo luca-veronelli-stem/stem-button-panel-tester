@@ -58,7 +58,7 @@ namespace Tests.Integration.Services
         public async Task TestAllAsync_CompleteWorkflow_ExecutesAllPhasesInOrder()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             // Configure simulated manager for full workflow
@@ -85,7 +85,7 @@ namespace Tests.Integration.Services
             void onButtonResult(int i, bool passed) => buttonResultCalls.Add((i, passed));
 
             // Act
-            var results = await _sut.TestAllAsync(
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(
                 panelType,
 userConfirm,
 userPrompt,
@@ -124,7 +124,7 @@ onButtonResult);
         public async Task TestAllAsync_PanelWithoutLed_SkipsLedTest()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0025205; // No LED
+            ButtonPanelType panelType = ButtonPanelType.DIS0025205; // No LED
             var panel = ButtonPanel.GetByType(panelType);
             Assert.False(panel.HasLed);
 
@@ -140,7 +140,7 @@ onButtonResult);
             Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert
             Assert.Equal(2, results.Count); // Only Buttons and Buzzer
@@ -159,7 +159,7 @@ onButtonResult);
         public async Task TestAllAsync_ButtonsInterrupted_StopsWorkflow()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             using var cts = new CancellationTokenSource();
 
             int promptCount = 0;
@@ -167,14 +167,17 @@ onButtonResult);
             {
                 promptCount++;
                 if (promptCount >= 2)
+                {
                     cts.Cancel();
+                }
+
                 return Task.CompletedTask;
             }
 
             Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(
                 panelType,
 userConfirm,
 userPrompt,
@@ -195,7 +198,7 @@ userPrompt,
         public async Task TestAllAsync_LedInterrupted_ReturnsButtonsAndLedResults()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
@@ -217,7 +220,7 @@ userPrompt,
             Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(
                 panelType,
 userConfirm,
 userPrompt,
@@ -244,7 +247,7 @@ userPrompt,
         public async Task TestAllAsync_ButtonTimeout_ReportsFailure()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             // Configure to skip button 2 (simulate timeout)
@@ -257,14 +260,14 @@ userPrompt,
             Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
 
             // Assert
-            var buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
+            ButtonPanelTestResult buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
             Assert.False(buttonResult.Passed);
             Assert.Contains("FALLITO", buttonResult.Message);
 
-            var (index, passed) = buttonResults.FirstOrDefault(r => r.index == 2);
+            (int index, bool passed) = buttonResults.FirstOrDefault(r => r.index == 2);
             Assert.False(passed);
         }
 
@@ -275,7 +278,7 @@ userPrompt,
         public async Task TestAllAsync_PartialButtonSuccess_ReportsCorrectly()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             // Skip buttons 1 and 5
@@ -288,15 +291,15 @@ userPrompt,
             Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
 
             // Assert
-            var buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
+            ButtonPanelTestResult buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
             Assert.False(buttonResult.Passed);
 
             // 6 passed, 2 failed
-            var passedCount = buttonResults.Count(r => r.passed);
-            var failedCount = buttonResults.Count(r => !r.passed);
+            int passedCount = buttonResults.Count(r => r.passed);
+            int failedCount = buttonResults.Count(r => !r.passed);
             Assert.Equal(6, passedCount);
             Assert.Equal(2, failedCount);
         }
@@ -325,10 +328,10 @@ userPrompt,
             Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
 
             // Assert
-            var buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
+            ButtonPanelTestResult buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
             Assert.True(buttonResult.Passed, $"Button test failed: {buttonResult.Message}");
             Assert.Equal(expectedButtonCount, buttonResults.Count);
         }
@@ -344,7 +347,7 @@ userPrompt,
         public async Task TestAllAsync_LedPartialFailure_ReportsCorrectly()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
@@ -361,16 +364,16 @@ userPrompt,
             Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert
-            var ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
+            ButtonPanelTestResult ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
             Assert.False(ledResult.Passed);
             Assert.False(ledResult.Interrupted);
 
             // Count PASSATO and FALLITO
-            var passatoCount = ledResult.Message.Split("PASSATO").Length - 1;
-            var fallitoCount = ledResult.Message.Split("FALLITO").Length - 1;
+            int passatoCount = ledResult.Message.Split("PASSATO").Length - 1;
+            int fallitoCount = ledResult.Message.Split("FALLITO").Length - 1;
 
             Assert.Equal(3, passatoCount);
             Assert.Equal(2, fallitoCount);
@@ -383,14 +386,14 @@ userPrompt,
         public async Task TestLedAsync_PanelWithoutLed_ReturnsSkipped()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0025205;
+            ButtonPanelType panelType = ButtonPanelType.DIS0025205;
             var panel = ButtonPanel.GetByType(panelType);
             Assert.False(panel.HasLed);
 
             static Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act - call TestLedAsync directly (doesn't require channel setup)
-            var result = await _sut.TestLedAsync(panelType, userConfirm);
+            ButtonPanelTestResult result = await _sut.TestLedAsync(panelType, userConfirm);
 
             // Assert
             Assert.True(result.Passed);
@@ -409,7 +412,7 @@ userPrompt,
         public async Task SetProtocolRepository_UpdatesRepository_UsesNewValues()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
             var newRepository = new CustomProtocolRepository();
 
@@ -420,7 +423,7 @@ userPrompt,
             static Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert - verify workflow completed (repository was used)
             Assert.NotNull(results);
@@ -439,7 +442,7 @@ userPrompt,
         public async Task TestAllAsync_CommunicationError_ReturnsErrorResult()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
 
             // Configure manager to fail connection
             _simulatedManager.FailConnection = true;
@@ -448,7 +451,7 @@ userPrompt,
             static Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert
             Assert.Single(results);
@@ -468,7 +471,7 @@ userPrompt,
         public async Task TestAllAsync_SequentialTests_NoInterference()
         {
             // Arrange
-            var panelTypes = new[]
+            ButtonPanelType[] panelTypes = new[]
             {
                 ButtonPanelType.DIS0023789,
                 ButtonPanelType.DIS0025205
@@ -479,13 +482,13 @@ userPrompt,
 
             // Act
             var allResults = new List<List<ButtonPanelTestResult>>();
-            foreach (var panelType in panelTypes)
+            foreach (ButtonPanelType panelType in panelTypes)
             {
                 var panel = ButtonPanel.GetByType(panelType);
                 _simulatedManager.Reset();
                 _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
 
-                var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+                List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
                 allResults.Add(results);
             }
 
@@ -512,7 +515,7 @@ userPrompt,
         public async Task TestAllAsync_ProtocolStackEncodesCommandsCorrectly()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
@@ -527,17 +530,17 @@ userPrompt,
             Task userPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, null);
 
             // Assert
-            var ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
+            ButtonPanelTestResult ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
             Assert.True(ledResult.Passed, $"LED test failed: {ledResult.Message}");
 
             // 5 LED confirmations + 1 buzzer = 6
             Assert.Equal(6, confirmCount);
 
             // Verify packets were sent through the protocol manager
-            var packets = _simulatedManager.SentPackets;
+            List<byte[]> packets = _simulatedManager.SentPackets;
             Assert.NotEmpty(packets);
             Assert.All(packets, p =>
             {
@@ -553,7 +556,7 @@ userPrompt,
         public async Task TestAllAsync_ProtocolManagerProcessesButtonEvents()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0026166;
+            ButtonPanelType panelType = ButtonPanelType.DIS0026166;
             var panel = ButtonPanel.GetByType(panelType);
 
             _simulatedManager.ConfigureForFullTest(panel, _protocolManager);
@@ -565,10 +568,10 @@ userPrompt,
             Task<bool> userConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, userConfirm, userPrompt, null, onButtonResult);
 
             // Assert
-            var buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
+            ButtonPanelTestResult buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
             Assert.True(buttonResult.Passed, $"Button test failed: {buttonResult.Message}");
             Assert.Equal(panel.ButtonCount, buttonResults.Count);
             Assert.Equal(panelType, buttonResult.PanelType);
@@ -659,7 +662,10 @@ userPrompt,
 
         public Task<bool> SendAsync(byte[] data, uint? arbitrationId = null)
         {
-            if (!IsConnected) return Task.FromResult(false);
+            if (!IsConnected)
+            {
+                return Task.FromResult(false);
+            }
 
             SentPackets.Add([.. data]);
 
@@ -696,13 +702,13 @@ userPrompt,
 
                 if (!_skipButtonIndices.Contains(buttonIndex))
                 {
-                    var buttonMask = _simulatedPanel.ButtonMasks[buttonIndex];
+                    byte buttonMask = _simulatedPanel.ButtonMasks[buttonIndex];
                     // Payload format from button panel: [0x00, 0x02, 0x80, 0x3E, buttonMask]
-                    var appPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
-                    var rawPacket = BuildProtocolPacket(appPayload);
+                    byte[] appPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
+                    byte[] rawPacket = BuildProtocolPacket(appPayload);
                     // Strip NetInfo (first 2 bytes) before passing to handler
                     // The CommunicationService expects transport packet only
-                    var transportPacket = rawPacket.Skip(2).ToArray();
+                    byte[] transportPacket = rawPacket.Skip(2).ToArray();
                     _packetReceivedHandler?.Invoke(this, transportPacket);
 
                     // Short delay after sending a button press
@@ -733,11 +739,11 @@ userPrompt,
 
         private void SimulateCommandResponse()
         {
-            var appPayload = new byte[] { 0x01, 0x00, 0x00, 0x00 }; // ACK response
-            var rawPacket = BuildProtocolPacket(appPayload);
+            byte[] appPayload = new byte[] { 0x01, 0x00, 0x00, 0x00 }; // ACK response
+            byte[] rawPacket = BuildProtocolPacket(appPayload);
             // Strip NetInfo (first 2 bytes) before passing to handler
             // The CommunicationService expects transport packet only
-            var transportPacket = rawPacket.Skip(2).ToArray();
+            byte[] transportPacket = rawPacket.Skip(2).ToArray();
             _packetReceivedHandler?.Invoke(this, transportPacket);
         }
 
@@ -757,10 +763,10 @@ userPrompt,
             transportHeader.AddRange(ToBigEndianBytes(lPack));
 
             // Calculate CRC over header + appPayload (matching TransportLayer implementation)
-            var dataForCrc = transportHeader.Concat(appPayload).ToArray();
+            byte[] dataForCrc = transportHeader.Concat(appPayload).ToArray();
             ushort crcValue = CalculateCrc16(dataForCrc);
             // CRC stored as big-endian (matching real hardware)
-            var crcBytes = ToBigEndianBytes(crcValue);
+            byte[] crcBytes = ToBigEndianBytes(crcValue);
 
             // Build transport packet
             var transportPacket = new List<byte>();
@@ -776,7 +782,7 @@ userPrompt,
                 (packetId << 2) |    // packetId
                 0                    // version = V1
             );
-            var netInfoBytes = ToLittleEndianBytes(netInfoValue);
+            byte[] netInfoBytes = ToLittleEndianBytes(netInfoValue);
 
             // Combine all parts
             var rawPacket = new List<byte>();

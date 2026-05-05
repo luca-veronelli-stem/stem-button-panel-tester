@@ -1,4 +1,4 @@
-﻿using Communication;
+using Communication;
 using Communication.Protocol.Layers;
 using Communication.Protocol.Lib;
 using Core.Enums;
@@ -31,9 +31,9 @@ namespace Tests.Unit.Communication
         private static byte[] CreateValidProtocolChunk(byte marker = 0x42)
         {
             // Create a minimal valid transport packet
-            var appPacket = ApplicationLayer.Create(marker, 0x00, []).ApplicationPacket;
+            byte[] appPacket = ApplicationLayer.Create(marker, 0x00, []).ApplicationPacket;
             var transportLayer = TransportLayer.Create(CryptType.None, 0, appPacket);
-            var transportPacket = transportLayer.TransportPacket;
+            byte[] transportPacket = transportLayer.TransportPacket;
 
             // Wrap in NetInfo (remainingChunks=0 means single complete chunk, packetId=1)
             var netInfo = new NetInfo(0, false, 1, ProtocolVersion.V1);
@@ -69,7 +69,7 @@ namespace Tests.Unit.Communication
             mockAdapter.Raise(a => a.ConnectionStatusChanged += null, mockAdapter.Object, true);
 
             // Use a valid protocol chunk that the reassembler can process
-            var validChunk = CreateValidProtocolChunk();
+            byte[] validChunk = CreateValidProtocolChunk();
             mockAdapter.Raise(a => a.PacketReceived += null, mockAdapter.Object,
                 new CanPacket(0x123, false, validChunk, 0));
 
@@ -228,7 +228,7 @@ namespace Tests.Unit.Communication
             byte[] data = [0x01, 0x02];
 
             // Act & Assert
-            var exception = await Assert.ThrowsAsync<ArgumentNullException>(() =>
+            ArgumentNullException exception = await Assert.ThrowsAsync<ArgumentNullException>(() =>
                 _manager.SendAsync(data, null));
 
             Assert.Equal("arbitrationId", exception.ParamName);
@@ -338,7 +338,7 @@ namespace Tests.Unit.Communication
             _manager.PacketReceived += (_, data) => receivedData = data;
 
             // Create a valid protocol chunk that the reassembler can process
-            var validChunk = CreateValidProtocolChunk(0x42);
+            byte[] validChunk = CreateValidProtocolChunk(0x42);
             var testPacket = new CanPacket(0x123, false, validChunk, 0);
 
             // Act

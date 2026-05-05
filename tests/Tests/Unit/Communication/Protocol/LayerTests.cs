@@ -91,8 +91,8 @@ namespace Tests.Unit.Communication.Protocol
                 byte[] data = [0x01, 0x02, 0x03];
                 var layer = new TestableLayer(data);
 
-                var data1 = layer.Data;
-                var data2 = layer.Data;
+                byte[] data1 = layer.Data;
+                byte[] data2 = layer.Data;
 
                 Assert.Same(data1, data2);
             }

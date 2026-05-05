@@ -1,4 +1,4 @@
-﻿namespace Core.Enums
+namespace Core.Enums
 {
     /// <summary>
     /// Rappresenta le versioni supportate del protocollo di comunicazione STEM.

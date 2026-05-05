@@ -1,4 +1,4 @@
-﻿namespace Core.Interfaces.Communication
+namespace Core.Interfaces.Communication
 {
     /// <summary>
     /// Contratto per i gestori delle comunicazioni (CAN, BLE, Seriale).

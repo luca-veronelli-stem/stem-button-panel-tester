@@ -75,7 +75,7 @@ namespace Tests.Services.Models
         public void GetConfiguration_AllPanelTypes_HaveFirmwareType0x0004()
         {
             // Arrange
-            var panelTypes = new[]
+            ButtonPanelType[] panelTypes = new[]
             {
                 ButtonPanelType.DIS0023789,
                 ButtonPanelType.DIS0025205,
@@ -84,7 +84,7 @@ namespace Tests.Services.Models
             };
 
             // Act & Assert
-            foreach (var panelType in panelTypes)
+            foreach (ButtonPanelType panelType in panelTypes)
             {
                 var config = PanelTypeConfiguration.GetConfiguration(panelType);
                 Assert.Equal(0x0004, config.FirmwareType);
@@ -95,7 +95,7 @@ namespace Tests.Services.Models
         public void GetConfiguration_AllPanelTypes_HaveUniqueMachineTypes()
         {
             // Arrange
-            var panelTypes = new[]
+            ButtonPanelType[] panelTypes = new[]
             {
                 ButtonPanelType.DIS0023789,
                 ButtonPanelType.DIS0025205,
@@ -116,7 +116,7 @@ namespace Tests.Services.Models
         public void GetConfiguration_AllPanelTypes_HaveUniqueTargetAddresses()
         {
             // Arrange
-            var panelTypes = new[]
+            ButtonPanelType[] panelTypes = new[]
             {
                 ButtonPanelType.DIS0023789,
                 ButtonPanelType.DIS0025205,
