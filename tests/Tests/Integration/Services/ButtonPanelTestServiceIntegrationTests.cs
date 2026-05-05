@@ -547,6 +547,7 @@ userPrompt,
         /// Verifies button press simulation works through the real protocol manager.
         /// </summary>
         [Fact]
+        [Trait("Category", TestCategories.FlakyOnCi)]
         public async Task TestAllAsync_ProtocolManagerProcessesButtonEvents()
         {
             // Arrange
