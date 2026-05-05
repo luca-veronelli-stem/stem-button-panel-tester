@@ -7,7 +7,7 @@ namespace Services.Helpers
     {
         /// <summary>
         /// Calcola l'indirizzo STEM in base a machine type, firmware type e board number.
-        /// Formula: (MACHINE << 16) | ((FIRMWARE_TYPE & 0x03FF) << 6) | (BOARD_NUMBER & 0x003F)
+        /// Formula: <c>(MACHINE &lt;&lt; 16) | ((FIRMWARE_TYPE &amp; 0x03FF) &lt;&lt; 6) | (BOARD_NUMBER &amp; 0x003F)</c>
         /// </summary>
         public static uint CalculateAddress(byte machineType, ushort firmwareType, byte boardNumber)
         {

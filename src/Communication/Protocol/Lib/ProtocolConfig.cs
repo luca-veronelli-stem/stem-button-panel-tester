@@ -1,4 +1,4 @@
-﻿namespace Communication.Protocol.Lib
+namespace Communication.Protocol.Lib
 {
     /// <summary>
     /// Centralizza i parametri configurabili del protocollo di comunicazione STEM.
@@ -53,7 +53,7 @@
         /// </param>
         /// <returns>Il prossimo identificativo di pacchetto assegnato.</returns>
         /// <remarks>
-        /// L'implementazione utilizza <see cref="Interlocked.CompareExchange"/> per garantire
+        /// L'implementazione utilizza <see cref="Interlocked.CompareExchange(ref int, int, int)"/> per garantire
         /// aggiornamenti atomici in scenari multithread.
         /// </remarks>
         public static int GetNextPacketId(ref int currentId)
