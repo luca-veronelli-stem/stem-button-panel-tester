@@ -46,7 +46,7 @@ namespace Tests.Services.Helpers
             }
 
             // Verifica indirizzo STEM (ultimi 4 bytes, big-endian)
-            Assert.Equal(0x00, payload[12]); // Byte più significativo
+            Assert.Equal(0x00, payload[12]); // Byte piÃ¹ significativo
             Assert.Equal(0x03, payload[13]);
             Assert.Equal(0x01, payload[14]);
             Assert.Equal(0x01, payload[15]); // Byte meno significativo

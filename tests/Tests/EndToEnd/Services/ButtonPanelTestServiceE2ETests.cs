@@ -2,6 +2,7 @@ using Communication;
 using Communication.Protocol;
 using Core.Enums;
 using Core.Interfaces.Communication;
+using Core.Interfaces.Data;
 using Core.Interfaces.Infrastructure;
 using Core.Interfaces.Services;
 using Core.Models.Communication;
@@ -61,7 +62,7 @@ namespace Tests.EndToEnd.Services
 
             // Create real protocol repository for the first panel type
             var factory = new ExcelProtocolRepositoryFactory(_excelRepository, _excelFilePath);
-            var protocolRepository = factory.Create(GetRecipientIdForPanel(ButtonPanelType.DIS0023789));
+            IProtocolRepository protocolRepository = factory.Create(GetRecipientIdForPanel(ButtonPanelType.DIS0023789));
 
             _sut = new ButtonPanelTestService(
                 _communicationService,
@@ -94,7 +95,11 @@ namespace Tests.EndToEnd.Services
             _mockAdapter.Setup(a => a.ConnectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
                 .ReturnsAsync(() =>
                 {
-                    if (_failConnection) return false;
+                    if (_failConnection)
+                    {
+                        return false;
+                    }
+
                     _mockAdapter.Raise(a => a.ConnectionStatusChanged += null, _mockAdapter.Object, true);
                     return true;
                 });
@@ -131,7 +136,9 @@ namespace Tests.EndToEnd.Services
 
             // Drain any leftover signals from previous tests
             while (_buttonPromptSignal.CurrentCount > 0)
+            {
                 _buttonPromptSignal.Wait(0);
+            }
 
             _ = Task.Run(async () =>
             {
@@ -152,7 +159,10 @@ namespace Tests.EndToEnd.Services
                     {
                         buttonIndex = _currentButtonIndex;
                         if (buttonIndex >= _simulatedPanel.ButtonMasks.Count)
+                        {
                             return;
+                        }
+
                         _currentButtonIndex++;
                     }
 
@@ -161,9 +171,9 @@ namespace Tests.EndToEnd.Services
                         // Small delay to let the service set up its listener
                         await Task.Delay(10);
 
-                        var buttonMask = _simulatedPanel.ButtonMasks[buttonIndex];
+                        byte buttonMask = _simulatedPanel.ButtonMasks[buttonIndex];
                         // Payload format from button panel: [0x00, 0x02, 0x80, 0x3E, buttonMask]
-                        var appPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
+                        byte[] appPayload = new byte[] { 0x00, 0x02, 0x80, 0x3E, buttonMask };
                         SimulateReceivedPacket(appPayload);
                     }
                     else
@@ -176,13 +186,13 @@ namespace Tests.EndToEnd.Services
 
         private void SimulateCommandResponse()
         {
-            var appPayload = new byte[] { 0x01, 0x00, 0x00, 0x00 }; // ACK response
+            byte[] appPayload = new byte[] { 0x01, 0x00, 0x00, 0x00 }; // ACK response
             SimulateReceivedPacket(appPayload);
         }
 
         private void SimulateReceivedPacket(byte[] appPayload)
         {
-            var rawPacket = BuildProtocolPacket(appPayload);
+            byte[] rawPacket = BuildProtocolPacket(appPayload);
             var packet = new CanPacket(0x100, false, rawPacket, (ulong)DateTime.UtcNow.Ticks);
             _mockAdapter.Raise(a => a.PacketReceived += null, _mockAdapter.Object, packet);
         }
@@ -212,10 +222,10 @@ namespace Tests.EndToEnd.Services
             transportHeader.AddRange(ToBigEndianBytes(lPack));
 
             // CRC is calculated over header + appPayload
-            var dataForCrc = transportHeader.Concat(appPayload).ToArray();
+            byte[] dataForCrc = transportHeader.Concat(appPayload).ToArray();
             ushort crcValue = CalculateCrc16(dataForCrc);
             // CRC stored as big-endian (matching real hardware)
-            var crcBytes = ToBigEndianBytes(crcValue);
+            byte[] crcBytes = ToBigEndianBytes(crcValue);
 
             var transportPacket = new List<byte>();
             transportPacket.AddRange(transportHeader);
@@ -230,7 +240,7 @@ namespace Tests.EndToEnd.Services
                 (packetId << 2) |
                 0
             );
-            var netInfoBytes = ToLittleEndianBytes(netInfoValue);
+            byte[] netInfoBytes = ToLittleEndianBytes(netInfoValue);
 
             var rawPacket = new List<byte>();
             rawPacket.AddRange(netInfoBytes);
@@ -273,9 +283,9 @@ namespace Tests.EndToEnd.Services
 
         private void SetupProtocolRepositoryForPanel(ButtonPanelType panelType)
         {
-            var recipientId = GetRecipientIdForPanel(panelType);
+            uint recipientId = GetRecipientIdForPanel(panelType);
             var factory = new ExcelProtocolRepositoryFactory(_excelRepository, _excelFilePath);
-            var repository = factory.Create(recipientId);
+            IProtocolRepository repository = factory.Create(recipientId);
             _sut.SetProtocolRepository(repository);
         }
 
@@ -299,7 +309,7 @@ namespace Tests.EndToEnd.Services
         public async Task E2E_CompleteWorkflow_8ButtonPanelWithLed_AllTestsPass()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -323,7 +333,7 @@ namespace Tests.EndToEnd.Services
             void onButtonResult(int i, bool p) => buttonCallbacks.Add((i, p));
 
             // Act
-            var results = await _sut.TestAllAsync(
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(
                 panelType,
 mockUserConfirm,
 mockUserPrompt,
@@ -352,7 +362,7 @@ onButtonResult);
         public async Task E2E_CompleteWorkflow_4ButtonPanelNoLed_ButtonsAndBuzzerOnly()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0025205;
+            ButtonPanelType panelType = ButtonPanelType.DIS0025205;
             var panel = ButtonPanel.GetByType(panelType);
             Assert.False(panel.HasLed);
 
@@ -369,7 +379,7 @@ onButtonResult);
             Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
             Assert.Equal(2, results.Count);
@@ -408,10 +418,10 @@ onButtonResult);
             void onButtonResult(int _, bool p) => buttonResults.Add(p);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, onButtonResult);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, onButtonResult);
 
             // Assert
-            var expectedTestCount = hasLed ? 3 : 2;
+            int expectedTestCount = hasLed ? 3 : 2;
             Assert.Equal(expectedTestCount, results.Count);
             Assert.All(results, r => Assert.True(r.Passed, $"Test {r.TestType} failed: {r.Message}"));
             Assert.Equal(expectedButtonCount, buttonResults.Count);
@@ -429,7 +439,7 @@ onButtonResult);
         public async Task E2E_ButtonTimeout_ReportsFailureWithRealCanManager()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -443,14 +453,14 @@ onButtonResult);
             Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, onButtonResult);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, onButtonResult);
 
             // Assert
-            var buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
+            ButtonPanelTestResult buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
             Assert.False(buttonResult.Passed);
             Assert.Contains("FALLITO", buttonResult.Message);
 
-            var (index, passed) = buttonResults.First(r => r.index == 3);
+            (int index, bool passed) = buttonResults.First(r => r.index == 3);
             Assert.False(passed);
             Assert.Equal(7, buttonResults.Count(r => r.passed));
         }
@@ -463,7 +473,7 @@ onButtonResult);
         public async Task E2E_ButtonPress_RealCanManagerAndProtocolDecodingWorks()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0026166;
+            ButtonPanelType panelType = ButtonPanelType.DIS0026166;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -477,10 +487,10 @@ onButtonResult);
             Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
-            var buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
+            ButtonPanelTestResult buttonResult = results.First(r => r.TestType == ButtonPanelTestType.Buttons);
             Assert.True(buttonResult.Passed);
 
             Assert.NotEmpty(decodedCommands);
@@ -499,7 +509,7 @@ onButtonResult);
         public async Task E2E_LedTest_UsesRealCanManager()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -515,10 +525,10 @@ onButtonResult);
             Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
-            var ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
+            ButtonPanelTestResult ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
             Assert.True(ledResult.Passed);
             Assert.True(confirmCount >= 5);
 
@@ -534,7 +544,7 @@ onButtonResult);
         public async Task E2E_LedTest_PartialFailure_UserRejectsSome()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -550,10 +560,10 @@ onButtonResult);
             Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
-            var ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
+            ButtonPanelTestResult ledResult = results.First(r => r.TestType == ButtonPanelTestType.Led);
             Assert.False(ledResult.Passed);
             Assert.False(ledResult.Interrupted);
             Assert.Contains("PASSATO", ledResult.Message);
@@ -571,7 +581,7 @@ onButtonResult);
         public async Task E2E_BuzzerTest_UsesRealCanManager()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -587,10 +597,10 @@ onButtonResult);
             Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
-            var buzzerResult = results.First(r => r.TestType == ButtonPanelTestType.Buzzer);
+            ButtonPanelTestResult buzzerResult = results.First(r => r.TestType == ButtonPanelTestType.Buzzer);
             Assert.True(buzzerResult.Passed);
             Assert.Contains("PASSATO", buzzerResult.Message);
             Assert.NotEmpty(_sentMessages);
@@ -603,7 +613,7 @@ onButtonResult);
         public async Task E2E_BuzzerTest_UserDoesNotHear_ReportsFailure()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -619,10 +629,10 @@ onButtonResult);
             Task mockUserPrompt(string _) { _buttonPromptSignal.Release(); return Task.CompletedTask; }
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
-            var buzzerResult = results.First(r => r.TestType == ButtonPanelTestType.Buzzer);
+            ButtonPanelTestResult buzzerResult = results.First(r => r.TestType == ButtonPanelTestType.Buzzer);
             Assert.False(buzzerResult.Passed);
             Assert.Contains("FALLITO", buzzerResult.Message);
         }
@@ -638,7 +648,7 @@ onButtonResult);
         public async Task E2E_CanConnectionFailure_ReturnsErrorResult()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             Reset();
             _failConnection = true;
 
@@ -655,7 +665,7 @@ onButtonResult);
             Task mockUserPrompt(string _) => Task.CompletedTask;
 
             // Act
-            var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
 
             // Assert
             Assert.Single(results);
@@ -670,7 +680,7 @@ onButtonResult);
         public async Task E2E_Cancellation_StopsWorkflowGracefully()
         {
             // Arrange
-            var panelType = ButtonPanelType.DIS0023789;
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
             var panel = ButtonPanel.GetByType(panelType);
 
             SetupProtocolRepositoryForPanel(panelType);
@@ -684,13 +694,16 @@ onButtonResult);
                 promptCount++;
                 _buttonPromptSignal.Release();
                 if (promptCount >= 3)
+                {
                     cts.Cancel();
+                }
+
                 return Task.CompletedTask;
             }
             Task<bool> mockUserConfirm(string _) => Task.FromResult(true);
 
             // Act
-            var results = await _sut.TestAllAsync(
+            List<ButtonPanelTestResult> results = await _sut.TestAllAsync(
                 panelType,
 mockUserConfirm,
 mockUserPrompt,
@@ -715,7 +728,7 @@ mockUserPrompt,
         public async Task E2E_SequentialPanelTests_RealCanManager()
         {
             // Arrange
-            var panelTypes = new[]
+            ButtonPanelType[] panelTypes = new[]
             {
                 ButtonPanelType.DIS0023789,
                 ButtonPanelType.DIS0025205,
@@ -728,14 +741,14 @@ mockUserPrompt,
             var allResults = new List<List<ButtonPanelTestResult>>();
 
             // Act
-            foreach (var panelType in panelTypes)
+            foreach (ButtonPanelType panelType in panelTypes)
             {
                 var panel = ButtonPanel.GetByType(panelType);
                 SetupProtocolRepositoryForPanel(panelType);
                 Reset();
                 ConfigureForFullTest(panel);
 
-                var results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
+                List<ButtonPanelTestResult> results = await _sut.TestAllAsync(panelType, mockUserConfirm, mockUserPrompt, null, null);
                 allResults.Add(results);
             }
 
@@ -772,7 +785,10 @@ mockUserPrompt,
         public ICommunicationManager Create(CommunicationChannel channel)
         {
             if (channel == CommunicationChannel.Can)
+            {
                 return _manager;
+            }
+
             throw new NotSupportedException($"Channel {channel} not supported in E2E tests");
         }
     }

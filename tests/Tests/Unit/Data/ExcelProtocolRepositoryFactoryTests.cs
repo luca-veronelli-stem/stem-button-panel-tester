@@ -24,7 +24,7 @@ namespace Tests.Unit.Data
         public void Constructor_NullExcelRepository_ThrowsArgumentNullException()
         {
             // Act & Assert
-            var exception = Assert.Throws<ArgumentNullException>(() =>
+            ArgumentNullException exception = Assert.Throws<ArgumentNullException>(() =>
                 new ExcelProtocolRepositoryFactory(null!, TestFilePath));
 
             Assert.Equal("excelRepository", exception.ParamName);
@@ -34,7 +34,7 @@ namespace Tests.Unit.Data
         public void Constructor_NullFilePath_ThrowsArgumentException()
         {
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() =>
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
                 new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, null!));
 
             Assert.Equal("excelFilePath", exception.ParamName);
@@ -44,7 +44,7 @@ namespace Tests.Unit.Data
         public void Constructor_EmptyFilePath_ThrowsArgumentException()
         {
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() =>
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
                 new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, ""));
 
             Assert.Equal("excelFilePath", exception.ParamName);
@@ -54,7 +54,7 @@ namespace Tests.Unit.Data
         public void Constructor_WhitespaceFilePath_ThrowsArgumentException()
         {
             // Act & Assert
-            var exception = Assert.Throws<ArgumentException>(() =>
+            ArgumentException exception = Assert.Throws<ArgumentException>(() =>
                 new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, "   "));
 
             Assert.Equal("excelFilePath", exception.ParamName);
@@ -81,7 +81,7 @@ namespace Tests.Unit.Data
             var factory = new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, TestFilePath);
 
             // Act
-            var repository = factory.Create(0x00030101);
+            IProtocolRepository repository = factory.Create(0x00030101);
 
             // Assert
             Assert.NotNull(repository);
@@ -95,8 +95,8 @@ namespace Tests.Unit.Data
             var factory = new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, TestFilePath);
 
             // Act
-            var repo1 = factory.Create(0x00030101);
-            var repo2 = factory.Create(0x000A0101);
+            IProtocolRepository repo1 = factory.Create(0x00030101);
+            IProtocolRepository repo2 = factory.Create(0x000A0101);
 
             // Assert
             Assert.NotSame(repo1, repo2);
@@ -110,8 +110,8 @@ namespace Tests.Unit.Data
             uint recipientId = 0x00030101;
 
             // Act
-            var repo1 = factory.Create(recipientId);
-            var repo2 = factory.Create(recipientId);
+            IProtocolRepository repo1 = factory.Create(recipientId);
+            IProtocolRepository repo2 = factory.Create(recipientId);
 
             // Assert - Factory creates new instances each time
             Assert.NotSame(repo1, repo2);
@@ -128,7 +128,7 @@ namespace Tests.Unit.Data
             var factory = new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, TestFilePath);
 
             // Act
-            var repository = factory.Create(recipientId);
+            IProtocolRepository repository = factory.Create(recipientId);
 
             // Assert
             Assert.NotNull(repository);
@@ -145,8 +145,8 @@ namespace Tests.Unit.Data
             var factory = new ExcelProtocolRepositoryFactory(_mockExcelRepository.Object, TestFilePath);
 
             // Act - Create multiple repositories
-            var repo1 = factory.Create(0x00030101);
-            var repo2 = factory.Create(0x000A0101);
+            IProtocolRepository repo1 = factory.Create(0x00030101);
+            IProtocolRepository repo2 = factory.Create(0x000A0101);
 
             // Assert - Both should be valid and non-null
             Assert.NotNull(repo1);

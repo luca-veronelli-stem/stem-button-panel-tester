@@ -18,8 +18,20 @@ namespace Services.Lib
         /// </summary>
         public ButtonPanelTestState CurrentState
         {
-            get { lock (_stateLock) return _currentState; }
-            private set { lock (_stateLock) _currentState = value; }
+            get
+            {
+                lock (_stateLock)
+                {
+                    return _currentState;
+                }
+            }
+            private set
+            {
+                lock (_stateLock)
+                {
+                    _currentState = value;
+                }
+            }
         }
 
         /// <summary>
@@ -52,7 +64,7 @@ namespace Services.Lib
         /// <param name="panelType">Tipo di pulsantiera.</param>
         /// <param name="testType">Tipo di test da eseguire.</param>
         /// <param name="panel">Configurazione della pulsantiera.</param>
-        /// <returns>True se la transizione è valida, false altrimenti.</returns>
+        /// <returns>True se la transizione Ã¨ valida, false altrimenti.</returns>
         public bool StartTest(ButtonPanelType panelType, ButtonPanelTestType testType, ButtonPanel panel)
         {
             if (CurrentState != ButtonPanelTestState.Idle)
@@ -72,7 +84,7 @@ namespace Services.Lib
         }
 
         /// <summary>
-        /// Segnala che l'inizializzazione è completata con successo.
+        /// Segnala che l'inizializzazione Ã¨ completata con successo.
         /// </summary>
         public bool InitializationComplete()
         {
@@ -83,7 +95,7 @@ namespace Services.Lib
             }
 
             // Determina il prossimo stato in base al tipo di test
-            var nextState = _context.TestType switch
+            ButtonPanelTestState nextState = _context.TestType switch
             {
                 ButtonPanelTestType.Buttons => ButtonPanelTestState.AwaitingButtonPress,
                 ButtonPanelTestType.Led => ButtonPanelTestState.TestingLed,
@@ -97,7 +109,7 @@ namespace Services.Lib
         }
 
         /// <summary>
-        /// Segnala che l'inizializzazione è fallita.
+        /// Segnala che l'inizializzazione Ã¨ fallita.
         /// </summary>
         /// <param name="errorMessage">Messaggio di errore.</param>
         public bool InitializationFailed(string errorMessage)
@@ -115,7 +127,7 @@ namespace Services.Lib
         /// <summary>
         /// Registra il risultato della pressione di un pulsante.
         /// </summary>
-        /// <param name="pressed">True se il pulsante è stato premuto, false se timeout.</param>
+        /// <param name="pressed">True se il pulsante Ã¨ stato premuto, false se timeout.</param>
         public bool RecordButtonResult(bool pressed)
         {
             if (CurrentState != ButtonPanelTestState.AwaitingButtonPress)
@@ -255,7 +267,7 @@ namespace Services.Lib
         }
 
         /// <summary>
-        /// Verifica se il test è in corso.
+        /// Verifica se il test Ã¨ in corso.
         /// </summary>
         public bool IsRunning => CurrentState != ButtonPanelTestState.Idle &&
                                   CurrentState != ButtonPanelTestState.Completed &&
@@ -263,7 +275,7 @@ namespace Services.Lib
                                   CurrentState != ButtonPanelTestState.Error;
 
         /// <summary>
-        /// Verifica se il test è in uno stato terminale.
+        /// Verifica se il test Ã¨ in uno stato terminale.
         /// </summary>
         public bool IsTerminal => CurrentState == ButtonPanelTestState.Completed ||
                                    CurrentState == ButtonPanelTestState.Interrupted ||
@@ -304,7 +316,7 @@ namespace Services.Lib
         /// </summary>
         private void TransitionTo(ButtonPanelTestState newState)
         {
-            var oldState = CurrentState;
+            ButtonPanelTestState oldState = CurrentState;
 
             if (oldState == newState)
             {

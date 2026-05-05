@@ -1,4 +1,4 @@
-﻿namespace Core.Models.Communication
+namespace Core.Models.Communication
 {
     // Modella un pacchetto ricevuto dal canale CAN
     public sealed record CanPacket(

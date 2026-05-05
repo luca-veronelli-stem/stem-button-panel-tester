@@ -1,4 +1,4 @@
-﻿namespace Core.Interfaces.Infrastructure
+namespace Core.Interfaces.Infrastructure
 {
     /// <summary>
     /// Contratto base per gli adattatori hardware.

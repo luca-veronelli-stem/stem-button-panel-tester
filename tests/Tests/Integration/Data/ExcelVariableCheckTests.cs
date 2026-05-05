@@ -1,6 +1,6 @@
+using System.Reflection;
 using Core.Interfaces.Data;
 using Data;
-using System.Reflection;
 
 #pragma warning disable xUnit1026 // panelName usato solo per leggibilità output test
 
@@ -17,7 +17,7 @@ namespace Tests.Integration.Data
 
         public ExcelVariableCheckTests()
         {
-            var assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+            string assemblyLocation = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
             _testFilePath = Path.Combine(assemblyLocation, "Resources", "StemDictionaries.xlsx");
             _excelRepository = new ExcelRepository();
         }
@@ -30,10 +30,10 @@ namespace Tests.Integration.Data
         public void GetVariable_ComandoLedVerde_ExistsForAllPanelTypes(uint recipientId, string _panelName)
         {
             // Arrange
-            var repository = CreateRepository(_excelRepository, _testFilePath, recipientId);
+            IProtocolRepository repository = CreateRepository(_excelRepository, _testFilePath, recipientId);
 
             // Act & Assert
-            var exception = Record.Exception(() => repository.GetVariable("Comando Led Verde"));
+            Exception exception = Record.Exception(() => repository.GetVariable("Comando Led Verde"));
 
             Assert.Null(exception);
         }
@@ -46,10 +46,10 @@ namespace Tests.Integration.Data
         public void GetVariable_ComandoLedRosso_ExistsForAllPanelTypes(uint recipientId, string _panelName)
         {
             // Arrange
-            var repository = CreateRepository(_excelRepository, _testFilePath, recipientId);
+            IProtocolRepository repository = CreateRepository(_excelRepository, _testFilePath, recipientId);
 
             // Act & Assert
-            var exception = Record.Exception(() => repository.GetVariable("Comando Led Rosso"));
+            Exception exception = Record.Exception(() => repository.GetVariable("Comando Led Rosso"));
 
             Assert.Null(exception);
         }
@@ -62,10 +62,10 @@ namespace Tests.Integration.Data
         public void GetVariable_ComandoBuzzer_ExistsForAllPanelTypes(uint recipientId, string _panelName)
         {
             // Arrange
-            var repository = CreateRepository(_excelRepository, _testFilePath, recipientId);
+            IProtocolRepository repository = CreateRepository(_excelRepository, _testFilePath, recipientId);
 
             // Act & Assert
-            var exception = Record.Exception(() => repository.GetVariable("Comando Buzzer"));
+            Exception exception = Record.Exception(() => repository.GetVariable("Comando Buzzer"));
 
             Assert.Null(exception);
         }
@@ -75,7 +75,7 @@ namespace Tests.Integration.Data
             string filePath,
             uint recipientId)
         {
-            var type = typeof(ExcelProtocolRepositoryFactory).Assembly
+            Type? type = typeof(ExcelProtocolRepositoryFactory).Assembly
                 .GetType("Data.ExcelStemProtocolRepository");
 
             return (IProtocolRepository)Activator.CreateInstance(

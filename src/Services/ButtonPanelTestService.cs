@@ -1,3 +1,4 @@
+using System.Text;
 using Core.Enums;
 using Core.Interfaces.Data;
 using Core.Interfaces.Infrastructure;
@@ -9,14 +10,13 @@ using Microsoft.Extensions.Logging;
 using Services.Helpers;
 using Services.Lib;
 using Services.Models;
-using System.Text;
 
 namespace Services
 {
     /// <summary>
     /// Implementazione del servizio di test delle pulsantiere.
     /// Utilizza una macchina a stati finiti per gestire il flusso del test.
-    /// Include funzionalit‡ di battezzamento per assegnare indirizzi STEM ai dispositivi.
+    /// Include funzionalit√† di battezzamento per assegnare indirizzi STEM ai dispositivi.
     /// Include monitoraggio della comunicazione tramite heartbeat attivo e recovery in caso di interruzione.
     /// </summary>
     public class ButtonPanelTestService : IButtonPanelTestService
@@ -57,7 +57,7 @@ namespace Services
         public ButtonPanelTestState CurrentState => _stateMachine.CurrentState;
 
         /// <summary>
-        /// Indica se un test Ë attualmente in esecuzione.
+        /// Indica se un test √® attualmente in esecuzione.
         /// </summary>
         public bool IsTestRunning => _stateMachine.IsRunning;
 
@@ -119,7 +119,7 @@ namespace Services
                 if (!_communicationLostNotified)
                 {
                     _communicationLostNotified = true;
-                    _logger?.LogError("Comunicazione CAN interrotta. » necessario l'intervento dell'utente.");
+                    _logger?.LogError("Comunicazione CAN interrotta. √à necessario l'intervento dell'utente.");
 
                     // Ferma il loop di heartbeat
                     StopHeartbeat();
@@ -162,7 +162,7 @@ namespace Services
             int timeoutMs = ProtocolConstants.DefaultTimeoutMs,
             CancellationToken cancellationToken = default)
         {
-            var result = await _baptizeService.BaptizeAsync(panel_type, timeoutMs, cancellationToken).ConfigureAwait(false);
+            BaptizeResult result = await _baptizeService.BaptizeAsync(panel_type, timeoutMs, cancellationToken).ConfigureAwait(false);
 
             if (result.Success)
             {
@@ -199,13 +199,13 @@ namespace Services
             // Avvia la FSM
             if (!_stateMachine.StartTest(panelType, ButtonPanelTestType.Complete, panel))
             {
-                return [TestResultFactory.CreateError(panelType, ButtonPanelTestType.Complete, "Test gi‡ in esecuzione", _currentDeviceUuid)];
+                return [TestResultFactory.CreateError(panelType, ButtonPanelTestType.Complete, "Test gi√† in esecuzione", _currentDeviceUuid)];
             }
 
             try
             {
                 // STATO: Initializing
-                var setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
+                Result setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
                 if (setupResult.IsFailure)
                 {
                     _stateMachine.SetError(setupResult.Error.Message);
@@ -214,22 +214,28 @@ namespace Services
                 _stateMachine.InitializationComplete();
 
                 // STATO: AwaitingButtonPress (test pulsanti)
-                var buttonsResult = await ExecuteButtonTestsAsync(panel, userPrompt, onButtonStart, onButtonResult, cancellationToken).ConfigureAwait(false);
+                ButtonPanelTestResult buttonsResult = await ExecuteButtonTestsAsync(panel, userPrompt, onButtonStart, onButtonResult, cancellationToken).ConfigureAwait(false);
                 results.Add(buttonsResult);
-                if (buttonsResult.Interrupted) return results;
+                if (buttonsResult.Interrupted)
+                {
+                    return results;
+                }
 
                 // STATO: TestingLed (se la pulsantiera ha LED)
                 if (_stateMachine.CurrentState == ButtonPanelTestState.TestingLed)
                 {
-                    var ledResult = await ExecuteLedTestAsync(panelType, userConfirm, cancellationToken).ConfigureAwait(false);
+                    ButtonPanelTestResult ledResult = await ExecuteLedTestAsync(panelType, userConfirm, cancellationToken).ConfigureAwait(false);
                     results.Add(ledResult);
-                    if (ledResult.Interrupted) return results;
+                    if (ledResult.Interrupted)
+                    {
+                        return results;
+                    }
                 }
 
                 // STATO: TestingBuzzer
                 if (_stateMachine.CurrentState == ButtonPanelTestState.TestingBuzzer)
                 {
-                    var buzzerResult = await ExecuteBuzzerTestAsync(panelType, userConfirm, cancellationToken).ConfigureAwait(false);
+                    ButtonPanelTestResult buzzerResult = await ExecuteBuzzerTestAsync(panelType, userConfirm, cancellationToken).ConfigureAwait(false);
                     results.Add(buzzerResult);
                 }
 
@@ -279,12 +285,12 @@ namespace Services
 
             if (!_stateMachine.StartTest(panelType, ButtonPanelTestType.Buttons, panel))
             {
-                return TestResultFactory.CreateError(panelType, ButtonPanelTestType.Buttons, "Test gi‡ in esecuzione", _currentDeviceUuid);
+                return TestResultFactory.CreateError(panelType, ButtonPanelTestType.Buttons, "Test gi√† in esecuzione", _currentDeviceUuid);
             }
 
             try
             {
-                var setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
+                Result setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
                 if (setupResult.IsFailure)
                 {
                     _stateMachine.SetError(setupResult.Error.Message);
@@ -333,12 +339,12 @@ namespace Services
 
             if (!_stateMachine.StartTest(panelType, ButtonPanelTestType.Led, panel))
             {
-                return TestResultFactory.CreateError(panelType, ButtonPanelTestType.Led, "Test gi‡ in esecuzione", _currentDeviceUuid);
+                return TestResultFactory.CreateError(panelType, ButtonPanelTestType.Led, "Test gi√† in esecuzione", _currentDeviceUuid);
             }
 
             try
             {
-                var setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
+                Result setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
                 if (setupResult.IsFailure)
                 {
                     _stateMachine.SetError(setupResult.Error.Message);
@@ -382,12 +388,12 @@ namespace Services
 
             if (!_stateMachine.StartTest(panelType, ButtonPanelTestType.Buzzer, panel))
             {
-                return TestResultFactory.CreateError(panelType, ButtonPanelTestType.Buzzer, "Test gi‡ in esecuzione", _currentDeviceUuid);
+                return TestResultFactory.CreateError(panelType, ButtonPanelTestType.Buzzer, "Test gi√† in esecuzione", _currentDeviceUuid);
             }
 
             try
             {
-                var setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
+                Result setupResult = await EnsureCommunicationSetupAsync(panelType, cancellationToken).ConfigureAwait(false);
                 if (setupResult.IsFailure)
                 {
                     _stateMachine.SetError(setupResult.Error.Message);
@@ -462,7 +468,7 @@ namespace Services
             CancellationToken cancellationToken = default,
             bool forceLastByteToFF = false)
         {
-            var result = await _baptizeService.ReassignAddressAsync(panelType, timeoutMs, cancellationToken, forceLastByteToFF).ConfigureAwait(false);
+            BaptizeResult result = await _baptizeService.ReassignAddressAsync(panelType, timeoutMs, cancellationToken, forceLastByteToFF).ConfigureAwait(false);
 
             if (result.Success)
             {
@@ -492,7 +498,7 @@ namespace Services
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                // Controlla se la comunicazione Ë stata persa
+                // Controlla se la comunicazione √® stata persa
                 if (_communicationLostNotified)
                 {
                     wasInterrupted = true;
@@ -503,7 +509,7 @@ namespace Services
                 int buttonIndex = _stateMachine.Context.CurrentButtonIndex;
                 onButtonStart?.Invoke(buttonIndex);
 
-                var buttonName = panel.Buttons[buttonIndex];
+                string buttonName = panel.Buttons[buttonIndex];
 
                 // Check for button press with any of the valid button status variable IDs
                 bool pressed = await AwaitButtonPressAsync(
@@ -514,7 +520,7 @@ namespace Services
                     $"Premi il pulsante {buttonName} entro {_buttonPressTimeout.TotalSeconds} secondi.",
                     cancellationToken).ConfigureAwait(false);
 
-                // Controlla nuovamente se la comunicazione Ë stata persa durante l'attesa
+                // Controlla nuovamente se la comunicazione √® stata persa durante l'attesa
                 if (_communicationLostNotified)
                 {
                     wasInterrupted = true;
@@ -527,7 +533,7 @@ namespace Services
                 messageBuilder.AppendLine($"- Pulsante {buttonName}: {(pressed ? "PASSATO" : "FALLITO")}");
             }
 
-            // Se Ë stato interrotto, restituisci un risultato di interruzione
+            // Se √® stato interrotto, restituisci un risultato di interruzione
             if (wasInterrupted || _communicationLostNotified)
             {
                 return new ButtonPanelTestResult
@@ -565,18 +571,18 @@ namespace Services
 
             try
             {
-                var writeCmd = _protocolRepository.GetCommand(ProtocolConstants.WriteVariableCommand);
-                var greenVar = _protocolRepository.GetVariable(ProtocolConstants.GreenLedVariable);
-                var redVar = _protocolRepository.GetVariable(ProtocolConstants.RedLedVariable);
-                var onValue = _protocolRepository.GetValue(ProtocolConstants.OnValue);
-                var offValue = _protocolRepository.GetValue(ProtocolConstants.OffValue);
+                ushort writeCmd = _protocolRepository.GetCommand(ProtocolConstants.WriteVariableCommand);
+                ushort greenVar = _protocolRepository.GetVariable(ProtocolConstants.GreenLedVariable);
+                ushort redVar = _protocolRepository.GetVariable(ProtocolConstants.RedLedVariable);
+                byte[] onValue = _protocolRepository.GetValue(ProtocolConstants.OnValue);
+                byte[] offValue = _protocolRepository.GetValue(ProtocolConstants.OffValue);
 
                 while (_stateMachine.CurrentState == ButtonPanelTestState.TestingLed &&
                        _stateMachine.Context.CurrentLedPhase != LedTestPhase.Complete)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    // Controlla se la comunicazione Ë stata persa
+                    // Controlla se la comunicazione √® stata persa
                     if (_communicationLostNotified)
                     {
                         wasInterrupted = true;
@@ -584,35 +590,35 @@ namespace Services
                         break;
                     }
 
-                    var phase = _stateMachine.Context.CurrentLedPhase;
+                    LedTestPhase phase = _stateMachine.Context.CurrentLedPhase;
                     bool conf;
 
                     switch (phase)
                     {
                         case LedTestPhase.GreenOn:
                             await SendWriteCommandAsync(writeCmd, greenVar, onValue, cancellationToken).ConfigureAwait(false);
-                            conf = await userConfirm("Il LED verde Ë acceso?").ConfigureAwait(false);
+                            conf = await userConfirm("Il LED verde √® acceso?").ConfigureAwait(false);
                             messageBuilder.AppendLine($"- LED verde acceso: {(conf ? "PASSATO" : "FALLITO")}");
                             _stateMachine.RecordLedResult(conf);
                             break;
 
                         case LedTestPhase.GreenOff:
                             await SendWriteCommandAsync(writeCmd, greenVar, offValue, cancellationToken).ConfigureAwait(false);
-                            conf = await userConfirm("Il LED verde Ë spento?").ConfigureAwait(false);
+                            conf = await userConfirm("Il LED verde √® spento?").ConfigureAwait(false);
                             messageBuilder.AppendLine($"- LED verde spento: {(conf ? "PASSATO" : "FALLITO")}");
                             _stateMachine.RecordLedResult(conf);
                             break;
 
                         case LedTestPhase.RedOn:
                             await SendWriteCommandAsync(writeCmd, redVar, onValue, cancellationToken).ConfigureAwait(false);
-                            conf = await userConfirm("Il LED rosso Ë acceso?").ConfigureAwait(false);
+                            conf = await userConfirm("Il LED rosso √® acceso?").ConfigureAwait(false);
                             messageBuilder.AppendLine($"- LED rosso acceso: {(conf ? "PASSATO" : "FALLITO")}");
                             _stateMachine.RecordLedResult(conf);
                             break;
 
                         case LedTestPhase.RedOff:
                             await SendWriteCommandAsync(writeCmd, redVar, offValue, cancellationToken).ConfigureAwait(false);
-                            conf = await userConfirm("Il LED rosso Ë spento?").ConfigureAwait(false);
+                            conf = await userConfirm("Il LED rosso √® spento?").ConfigureAwait(false);
                             messageBuilder.AppendLine($"- LED rosso spento: {(conf ? "PASSATO" : "FALLITO")}");
                             _stateMachine.RecordLedResult(conf);
                             break;
@@ -629,7 +635,7 @@ namespace Services
                             break;
                     }
 
-                    // Controlla nuovamente se la comunicazione Ë stata persa dopo ogni operazione
+                    // Controlla nuovamente se la comunicazione √® stata persa dopo ogni operazione
                     if (_communicationLostNotified)
                     {
                         wasInterrupted = true;
@@ -638,7 +644,7 @@ namespace Services
                     }
                 }
 
-                // Se Ë stato interrotto, restituisci un risultato di interruzione
+                // Se √® stato interrotto, restituisci un risultato di interruzione
                 if (wasInterrupted || _communicationLostNotified)
                 {
                     return new ButtonPanelTestResult
@@ -684,7 +690,7 @@ namespace Services
         {
             try
             {
-                // Controlla se la comunicazione Ë stata persa
+                // Controlla se la comunicazione √® stata persa
                 if (_communicationLostNotified)
                 {
                     return new ButtonPanelTestResult
@@ -698,13 +704,13 @@ namespace Services
                     };
                 }
 
-                var writeCmd = _protocolRepository.GetCommand(ProtocolConstants.WriteVariableCommand);
-                var buzzerVar = _protocolRepository.GetVariable(ProtocolConstants.BuzzerVariable);
-                var blinkValue = _protocolRepository.GetValue(ProtocolConstants.SingleBlinkValue);
+                ushort writeCmd = _protocolRepository.GetCommand(ProtocolConstants.WriteVariableCommand);
+                ushort buzzerVar = _protocolRepository.GetVariable(ProtocolConstants.BuzzerVariable);
+                byte[] blinkValue = _protocolRepository.GetValue(ProtocolConstants.SingleBlinkValue);
 
                 await SendWriteCommandAsync(writeCmd, buzzerVar, blinkValue, cancellationToken).ConfigureAwait(false);
 
-                // Controlla nuovamente se la comunicazione Ë stata persa dopo l'invio
+                // Controlla nuovamente se la comunicazione √® stata persa dopo l'invio
                 if (_communicationLostNotified)
                 {
                     return new ButtonPanelTestResult
@@ -747,7 +753,7 @@ namespace Services
         {
             try
             {
-                var reassign = await ReassignAddressAsync(panelType, ProtocolConstants.DefaultTimeoutMs, cancellationToken, forceLastByteToFF: true).ConfigureAwait(false);
+                BaptizeResult reassign = await ReassignAddressAsync(panelType, ProtocolConstants.DefaultTimeoutMs, cancellationToken, forceLastByteToFF: true).ConfigureAwait(false);
             }
             catch (Exception)
             {
@@ -795,7 +801,7 @@ namespace Services
                 }
             }
 
-            using var registration = cts.Token.Register(() => tcs.TrySetResult(false));
+            using CancellationTokenRegistration registration = cts.Token.Register(() => tcs.TrySetResult(false));
 
             _communicationService.CommandDecoded += OnCommandDecoded;
 
@@ -829,15 +835,17 @@ namespace Services
                     await Task.Delay(ProtocolConstants.HeartbeatIntervalMs, cancellationToken).ConfigureAwait(false);
 
                     if (!_heartbeatEnabled || cancellationToken.IsCancellationRequested)
+                    {
                         break;
+                    }
 
                     heartbeatCount++;
-                    var heartbeatStartTime = DateTime.UtcNow;
+                    DateTime heartbeatStartTime = DateTime.UtcNow;
 
                     // Invia il comando heartbeat (0x0000) e attendi la risposta (0x8000)
                     bool heartbeatReceived = await SendHeartbeatAndWaitResponseAsync(cancellationToken).ConfigureAwait(false);
 
-                    var heartbeatDuration = DateTime.UtcNow - heartbeatStartTime;
+                    TimeSpan heartbeatDuration = DateTime.UtcNow - heartbeatStartTime;
 
                     lock (_heartbeatLock)
                     {
@@ -852,7 +860,7 @@ namespace Services
                             // Log periodico dello stato (ogni 10 heartbeat OK)
                             if (heartbeatCount % 10 == 0)
                             {
-                                var uptime = DateTime.UtcNow - loopStartTime;
+                                TimeSpan uptime = DateTime.UtcNow - loopStartTime;
                                 _logger?.LogDebug("HEARTBEAT: OK #{Count}, Uptime={Uptime:mm\\:ss}, ResponseTime={ResponseMs}ms",
                                     heartbeatCount, uptime, (int)heartbeatDuration.TotalMilliseconds);
                             }
@@ -868,7 +876,7 @@ namespace Services
 
                             if (_missedHeartbeats >= ProtocolConstants.MaxMissedHeartbeats)
                             {
-                                var uptime = DateTime.UtcNow - loopStartTime;
+                                TimeSpan uptime = DateTime.UtcNow - loopStartTime;
                                 _logger?.LogError("HEARTBEAT: Troppi heartbeat mancanti! TotalHeartbeats={Total}, Uptime={Uptime:mm\\:ss}",
                                     heartbeatCount, uptime);
                                 NotifyCommunicationLost();
@@ -887,7 +895,7 @@ namespace Services
                 }
             }
 
-            var totalUptime = DateTime.UtcNow - loopStartTime;
+            TimeSpan totalUptime = DateTime.UtcNow - loopStartTime;
             _logger?.LogDebug("HEARTBEAT: Loop terminato. TotalHeartbeats={Total}, Uptime={Uptime:mm\\:ss}", heartbeatCount, totalUptime);
         }
 
@@ -901,7 +909,7 @@ namespace Services
                 // Log dello stato del CAN adapter se disponibile
                 if (_canAdapter != null)
                 {
-                    var diagnostics = _canAdapter.GetDiagnostics();
+                    string diagnostics = _canAdapter.GetDiagnostics();
                     _logger?.LogWarning("HEARTBEAT DIAGNOSTICS:\n{Diagnostics}", diagnostics);
                 }
 
@@ -918,7 +926,7 @@ namespace Services
         /// <summary>
         /// Invia il comando heartbeat 0x0000 e attende la risposta 0x8000.
         /// </summary>
-        /// <returns>True se la risposta Ë stata ricevuta, false altrimenti.</returns>
+        /// <returns>True se la risposta √® stata ricevuta, false altrimenti.</returns>
         private async Task<bool> SendHeartbeatAndWaitResponseAsync(CancellationToken cancellationToken)
         {
             var tcs = new TaskCompletionSource<bool>();
@@ -927,7 +935,7 @@ namespace Services
 
             void OnCommandDecoded(object? sender, AppLayerDecoderEventArgs e)
             {
-                // Verifica se la risposta Ë 0x8000 (heartbeat response)
+                // Verifica se la risposta √® 0x8000 (heartbeat response)
                 if (e.Payload.Length >= 2)
                 {
                     ushort responseCommand = (ushort)((e.Payload[0] << 8) | e.Payload[1]);
@@ -939,7 +947,7 @@ namespace Services
                 }
             }
 
-            using var registration = cts.Token.Register(() =>
+            using CancellationTokenRegistration registration = cts.Token.Register(() =>
             {
                 _logger?.LogDebug("HEARTBEAT: Timeout raggiunto ({Timeout}ms), nessuna risposta", ProtocolConstants.HeartbeatTimeoutMs);
                 tcs.TrySetResult(false);
@@ -952,13 +960,13 @@ namespace Services
                 // Invia il comando heartbeat 0x0000
                 _logger?.LogDebug("HEARTBEAT: Invio comando 0x{Cmd:X4}", ProtocolConstants.CMD_HEARTBEAT);
 
-                var sendStartTime = DateTime.UtcNow;
-                var result = await _communicationService.SendCommandAsync(
+                DateTime sendStartTime = DateTime.UtcNow;
+                Result<byte[]> result = await _communicationService.SendCommandAsync(
                     ProtocolConstants.CMD_HEARTBEAT,
                     Array.Empty<byte>(),
                     waitAnswer: false,
                     cancellationToken: cts.Token).ConfigureAwait(false);
-                var sendDuration = DateTime.UtcNow - sendStartTime;
+                TimeSpan sendDuration = DateTime.UtcNow - sendStartTime;
 
                 if (result.IsFailure)
                 {
@@ -985,14 +993,14 @@ namespace Services
 
         private async Task SendWriteCommandAsync(ushort command, ushort variable, byte[] value, CancellationToken cancellationToken)
         {
-            var payload = PayloadBuilder.BuildWriteVariablePayload(variable, value);
+            byte[] payload = PayloadBuilder.BuildWriteVariablePayload(variable, value);
 
             _communicationService.SetSenderRecipientIds(ProtocolConstants.ComputerSenderId, ProtocolConstants.PanelListenId);
 
             _logger?.LogInformation("Invio comando 0x{Cmd:X4} a 0x{Recipient:X8}", command, ProtocolConstants.PanelListenId);
             _logger?.LogInformation("  Variabile: 0x{Var:X4}, Valore: {Value}", variable, BitConverter.ToString(value));
 
-            var result = await _communicationService.SendCommandAsync(command, payload, waitAnswer: false, cancellationToken: cancellationToken).ConfigureAwait(false);
+            Result<byte[]> result = await _communicationService.SendCommandAsync(command, payload, waitAnswer: false, cancellationToken: cancellationToken).ConfigureAwait(false);
 
             if (result.IsFailure)
             {
@@ -1004,7 +1012,7 @@ namespace Services
 
         private async Task<Result> EnsureCommunicationSetupAsync(ButtonPanelType panelType, CancellationToken cancellationToken)
         {
-            var channelResult = await _communicationService.SetActiveChannelAsync(CommunicationChannel.Can, ProtocolConstants.DefaultCanConfig, cancellationToken).ConfigureAwait(false);
+            Result channelResult = await _communicationService.SetActiveChannelAsync(CommunicationChannel.Can, ProtocolConstants.DefaultCanConfig, cancellationToken).ConfigureAwait(false);
 
             if (channelResult.IsFailure)
             {
@@ -1020,7 +1028,7 @@ namespace Services
                     "Dispositivo CAN non connesso. Assicurati che il dispositivo sia connesso al bus CAN.");
             }
 
-            // Non sovrascrivere il RecipientId se Ë gi‡ stato impostato dal battezzamento
+            // Non sovrascrivere il RecipientId se √® gi√† stato impostato dal battezzamento
             if (_lastRecipientId == null || _currentPanelType != panelType)
             {
                 _communicationService.SetSenderRecipientIds(ProtocolConstants.ComputerSenderId, ProtocolConstants.PanelListenId);
@@ -1107,7 +1115,7 @@ namespace Services
                 StopHeartbeat();
 
                 _logger?.LogInformation("Disconnessione canale CAN al termine del test...");
-                var result = await _communicationService.DisconnectActiveChannelAsync().ConfigureAwait(false);
+                Result result = await _communicationService.DisconnectActiveChannelAsync().ConfigureAwait(false);
 
                 if (result.IsSuccess)
                 {

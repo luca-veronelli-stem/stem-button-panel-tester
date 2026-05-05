@@ -1,4 +1,4 @@
-﻿using Communication.Protocol.Layers;
+using Communication.Protocol.Layers;
 using Core.Interfaces.Infrastructure;
 using Core.Models.Communication;
 
@@ -35,7 +35,7 @@ namespace Communication
             // Clear any pending reassembly state
             _reassembler.ClearReassemblyState();
 
-            var result = await _adapter.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
+            bool result = await _adapter.ConnectAsync(config, cancellationToken).ConfigureAwait(false);
             return result;
         }
 
@@ -62,7 +62,7 @@ namespace Communication
             // Anche se l'ID può stare in 11 bit (< 0x7FF), deve essere inviato come Extended.
             const bool useExtendedId = true;
 
-            var result = await _adapter.Send(arbitrationId.Value, data, useExtendedId).ConfigureAwait(false);
+            bool result = await _adapter.Send(arbitrationId.Value, data, useExtendedId).ConfigureAwait(false);
             return result;
         }
 

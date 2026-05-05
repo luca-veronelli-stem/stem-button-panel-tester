@@ -1,8 +1,7 @@
+using System.Collections.Concurrent;
 using Communication.Protocol.Lib;
 using Core.Enums;
 using Core.Models.Communication;
-
-using System.Collections.Concurrent;
 
 namespace Communication.Protocol.Layers
 {
@@ -71,7 +70,7 @@ namespace Communication.Protocol.Layers
                     "La dimensione del chunk deve essere un valore positivo.");
             }
 
-            var networkPackets = BuildChunks(arbitrationId, transportPacket, chunkSize);
+            List<NetworkPacketChunk> networkPackets = BuildChunks(arbitrationId, transportPacket, chunkSize);
             return new NetworkLayer(arbitrationId, transportPacket, chunkSize, networkPackets);
         }
 
@@ -195,7 +194,7 @@ namespace Communication.Protocol.Layers
         /// </summary>
         private void ProcessChunkInternal(NetInfo netInfo, byte[] chunkData)
         {
-            bool hasExistingData = _packetQueues.TryGetValue(netInfo.PacketId, out var existingBuffer)
+            bool hasExistingData = _packetQueues.TryGetValue(netInfo.PacketId, out ReassemblyBuffer? existingBuffer)
                                    && existingBuffer?.Chunks.Count > 0;
 
             // Se è l'inizio di una nuova sequenza o un pacchetto singolo, resetta il buffer
@@ -204,7 +203,7 @@ namespace Communication.Protocol.Layers
                 _packetQueues.TryRemove(netInfo.PacketId, out _);
             }
 
-            var buffer = _packetQueues.GetOrAdd(netInfo.PacketId, _ => new ReassemblyBuffer());
+            ReassemblyBuffer buffer = _packetQueues.GetOrAdd(netInfo.PacketId, _ => new ReassemblyBuffer());
             buffer.Chunks.Add(chunkData);
 
             LogDiagnostic($"Aggiunto chunk {buffer.Chunks.Count} per packetId={netInfo.PacketId}, rimanenti={netInfo.RemainingChunks}");
@@ -250,7 +249,7 @@ namespace Communication.Protocol.Layers
         private static byte[] ConcatenateChunks(IReadOnlyList<byte[]> chunks)
         {
             int totalLength = 0;
-            foreach (var chunk in chunks)
+            foreach (byte[] chunk in chunks)
             {
                 totalLength += chunk?.Length ?? 0;
             }
@@ -258,9 +257,13 @@ namespace Communication.Protocol.Layers
             byte[] result = new byte[totalLength];
             int position = 0;
 
-            foreach (var chunk in chunks)
+            foreach (byte[] chunk in chunks)
             {
-                if (chunk == null) continue;
+                if (chunk == null)
+                {
+                    continue;
+                }
+
                 Buffer.BlockCopy(chunk, 0, result, position, chunk.Length);
                 position += chunk.Length;
             }
@@ -285,7 +288,11 @@ namespace Communication.Protocol.Layers
         /// </summary>
         public void Dispose()
         {
-            if (_disposed) return;
+            if (_disposed)
+            {
+                return;
+            }
+
             _disposed = true;
             _packetQueues.Clear();
         }

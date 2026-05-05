@@ -1,4 +1,4 @@
-﻿namespace Communication.Protocol.Lib
+namespace Communication.Protocol.Lib
 {
     /// <summary>
     /// Eccezione specifica per errori relativi al protocollo di comunicazione STEM.

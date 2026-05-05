@@ -38,8 +38,8 @@ namespace Tests.Unit.Communication.Protocol
             public void SingleChunk_RaisesPacketReassembled()
             {
                 // Arrange - Create a valid transport packet
-                var transportPacket = CreateMinimalTransportPacket();
-                var chunk = CreateChunkWithNetInfo(transportPacket, remainingChunks: 0, packetId: 1);
+                byte[] transportPacket = CreateMinimalTransportPacket();
+                byte[] chunk = CreateChunkWithNetInfo(transportPacket, remainingChunks: 0, packetId: 1);
 
                 // Act
                 _reassembler.ProcessReceivedChunk(chunk);
@@ -54,8 +54,8 @@ namespace Tests.Unit.Communication.Protocol
             {
                 for (int packetId = 1; packetId <= 7; packetId++)
                 {
-                    var transportPacket = CreateMinimalTransportPacket((byte)packetId);
-                    var chunk = CreateChunkWithNetInfo(transportPacket, remainingChunks: 0, packetId: packetId);
+                    byte[] transportPacket = CreateMinimalTransportPacket((byte)packetId);
+                    byte[] chunk = CreateChunkWithNetInfo(transportPacket, remainingChunks: 0, packetId: packetId);
 
                     _reassembler.ProcessReceivedChunk(chunk);
                 }
@@ -74,13 +74,13 @@ namespace Tests.Unit.Communication.Protocol
             public void TwoChunks_ReassemblesCorrectly()
             {
                 // Arrange - Split transport packet into 2 chunks
-                var transportPacket = CreateMinimalTransportPacket();
+                byte[] transportPacket = CreateMinimalTransportPacket();
                 int splitPoint = transportPacket.Length / 2;
                 byte[] part1 = transportPacket[..splitPoint];
                 byte[] part2 = transportPacket[splitPoint..];
 
-                var chunk1 = CreateChunkWithNetInfo(part1, remainingChunks: 1, packetId: 1);
-                var chunk2 = CreateChunkWithNetInfo(part2, remainingChunks: 0, packetId: 1);
+                byte[] chunk1 = CreateChunkWithNetInfo(part1, remainingChunks: 1, packetId: 1);
+                byte[] chunk2 = CreateChunkWithNetInfo(part2, remainingChunks: 0, packetId: 1);
 
                 // Act
                 _reassembler.ProcessReceivedChunk(chunk1);
@@ -97,11 +97,11 @@ namespace Tests.Unit.Communication.Protocol
             public void ThreeChunks_ReassemblesCorrectly()
             {
                 // Arrange
-                var transportPacket = CreateLargerTransportPacket(30);
-                var chunks = SplitIntoChunks(transportPacket, chunkSize: 10, packetId: 2);
+                byte[] transportPacket = CreateLargerTransportPacket(30);
+                List<byte[]> chunks = SplitIntoChunks(transportPacket, chunkSize: 10, packetId: 2);
 
                 // Act
-                foreach (var chunk in chunks)
+                foreach (byte[] chunk in chunks)
                 {
                     _reassembler.ProcessReceivedChunk(chunk);
                 }
@@ -115,11 +115,11 @@ namespace Tests.Unit.Communication.Protocol
             public void ManyChunks_ReassemblesCorrectly()
             {
                 // Arrange
-                var transportPacket = CreateLargerTransportPacket(100);
-                var chunks = SplitIntoChunks(transportPacket, chunkSize: 8, packetId: 3);
+                byte[] transportPacket = CreateLargerTransportPacket(100);
+                List<byte[]> chunks = SplitIntoChunks(transportPacket, chunkSize: 8, packetId: 3);
 
                 // Act
-                foreach (var chunk in chunks)
+                foreach (byte[] chunk in chunks)
                 {
                     _reassembler.ProcessReceivedChunk(chunk);
                 }
@@ -133,8 +133,8 @@ namespace Tests.Unit.Communication.Protocol
             public void IncompleteSequence_DoesNotRaiseEvent()
             {
                 // Arrange - Send only first chunk of multi-chunk sequence
-                var transportPacket = CreateLargerTransportPacket(20);
-                var chunks = SplitIntoChunks(transportPacket, chunkSize: 8, packetId: 4);
+                byte[] transportPacket = CreateLargerTransportPacket(20);
+                List<byte[]> chunks = SplitIntoChunks(transportPacket, chunkSize: 8, packetId: 4);
 
                 // Act - Only send first chunk
                 _reassembler.ProcessReceivedChunk(chunks[0]);
@@ -154,11 +154,11 @@ namespace Tests.Unit.Communication.Protocol
             public void SetLength_ExtractsCorrectLength()
             {
                 // Arrange - Create packet with length prefix
-                var transportPacket = CreateMinimalTransportPacket();
+                byte[] transportPacket = CreateMinimalTransportPacket();
                 ushort length = (ushort)transportPacket.Length;
                 byte[] withLength = [.. BitConverter.GetBytes(length), .. transportPacket];
 
-                var chunk = CreateChunkWithNetInfo(withLength, remainingChunks: 0, packetId: 1, setLength: true);
+                byte[] chunk = CreateChunkWithNetInfo(withLength, remainingChunks: 0, packetId: 1, setLength: true);
 
                 // Act
                 _reassembler.ProcessReceivedChunk(chunk);
@@ -172,11 +172,11 @@ namespace Tests.Unit.Communication.Protocol
             public void SetLength_SingleChunk_ExtractsCorrectly()
             {
                 // Arrange - Single chunk with SetLength flag
-                var transportPacket = CreateMinimalTransportPacket();
+                byte[] transportPacket = CreateMinimalTransportPacket();
                 ushort length = (ushort)transportPacket.Length;
                 byte[] withLength = [.. BitConverter.GetBytes(length), .. transportPacket];
 
-                var chunk = CreateChunkWithNetInfo(withLength, remainingChunks: 0, packetId: 2, setLength: true);
+                byte[] chunk = CreateChunkWithNetInfo(withLength, remainingChunks: 0, packetId: 2, setLength: true);
 
                 // Act
                 _reassembler.ProcessReceivedChunk(chunk);
@@ -190,15 +190,15 @@ namespace Tests.Unit.Communication.Protocol
             public void SetLength_ResetsBufferForNewSequence()
             {
                 // Arrange - First send incomplete sequence
-                var packet1 = CreateLargerTransportPacket(20);
-                var incompleteChunks = SplitIntoChunks(packet1, chunkSize: 8, packetId: 1);
+                byte[] packet1 = CreateLargerTransportPacket(20);
+                List<byte[]> incompleteChunks = SplitIntoChunks(packet1, chunkSize: 8, packetId: 1);
                 _reassembler.ProcessReceivedChunk(incompleteChunks[0]); // Only first chunk
 
                 // Now send new sequence with same packetId but SetLength flag
-                var packet2 = CreateMinimalTransportPacket();
+                byte[] packet2 = CreateMinimalTransportPacket();
                 ushort length = (ushort)packet2.Length;
                 byte[] withLength = [.. BitConverter.GetBytes(length), .. packet2];
-                var newChunk = CreateChunkWithNetInfo(withLength, remainingChunks: 0, packetId: 1, setLength: true);
+                byte[] newChunk = CreateChunkWithNetInfo(withLength, remainingChunks: 0, packetId: 1, setLength: true);
 
                 // Act
                 _reassembler.ProcessReceivedChunk(newChunk);
@@ -257,7 +257,7 @@ namespace Tests.Unit.Communication.Protocol
             {
                 // Create chunk with data smaller than MinTransportPacketLength
                 byte[] tooShort = new byte[ProtocolConfig.MinTransportPacketLength - 1];
-                var chunk = CreateChunkWithNetInfo(tooShort, remainingChunks: 0, packetId: 1);
+                byte[] chunk = CreateChunkWithNetInfo(tooShort, remainingChunks: 0, packetId: 1);
 
                 _reassembler.ProcessReceivedChunk(chunk);
 
@@ -276,17 +276,24 @@ namespace Tests.Unit.Communication.Protocol
             public void DifferentPacketIds_ReassembleIndependently()
             {
                 // Arrange - Two interleaved streams with different packet IDs
-                var packet1 = CreateMinimalTransportPacket(0x11);
-                var packet2 = CreateMinimalTransportPacket(0x22);
+                byte[] packet1 = CreateMinimalTransportPacket(0x11);
+                byte[] packet2 = CreateMinimalTransportPacket(0x22);
 
-                var chunks1 = SplitIntoChunks(packet1, chunkSize: 6, packetId: 1);
-                var chunks2 = SplitIntoChunks(packet2, chunkSize: 6, packetId: 2);
+                List<byte[]> chunks1 = SplitIntoChunks(packet1, chunkSize: 6, packetId: 1);
+                List<byte[]> chunks2 = SplitIntoChunks(packet2, chunkSize: 6, packetId: 2);
 
                 // Act - Interleave chunks
                 for (int i = 0; i < Math.Max(chunks1.Count, chunks2.Count); i++)
                 {
-                    if (i < chunks1.Count) _reassembler.ProcessReceivedChunk(chunks1[i]);
-                    if (i < chunks2.Count) _reassembler.ProcessReceivedChunk(chunks2[i]);
+                    if (i < chunks1.Count)
+                    {
+                        _reassembler.ProcessReceivedChunk(chunks1[i]);
+                    }
+
+                    if (i < chunks2.Count)
+                    {
+                        _reassembler.ProcessReceivedChunk(chunks2[i]);
+                    }
                 }
 
                 // Assert
@@ -304,9 +311,9 @@ namespace Tests.Unit.Communication.Protocol
 
                 for (int packetId = 1; packetId <= 3; packetId++)
                 {
-                    var packet = CreateMinimalTransportPacket((byte)(0x10 + packetId));
+                    byte[] packet = CreateMinimalTransportPacket((byte)(0x10 + packetId));
                     packets.Add(packet);
-                    var chunks = SplitIntoChunks(packet, chunkSize: 6, packetId: packetId);
+                    List<byte[]> chunks = SplitIntoChunks(packet, chunkSize: 6, packetId: packetId);
                     allChunks.Add(chunks);
                 }
 
@@ -314,7 +321,7 @@ namespace Tests.Unit.Communication.Protocol
                 int maxChunks = allChunks.Max(c => c.Count);
                 for (int i = 0; i < maxChunks; i++)
                 {
-                    foreach (var chunks in allChunks)
+                    foreach (List<byte[]> chunks in allChunks)
                     {
                         if (i < chunks.Count)
                         {
@@ -325,7 +332,7 @@ namespace Tests.Unit.Communication.Protocol
 
                 // Assert
                 Assert.Equal(3, _reassembledPackets.Count);
-                foreach (var expectedPacket in packets)
+                foreach (byte[] expectedPacket in packets)
                 {
                     Assert.Contains(_reassembledPackets, p => p.SequenceEqual(expectedPacket));
                 }
@@ -342,8 +349,8 @@ namespace Tests.Unit.Communication.Protocol
             public void ClearReassemblyState_RemovesPendingChunks()
             {
                 // Arrange - Start a multi-chunk sequence
-                var packet = CreateLargerTransportPacket(20);
-                var chunks = SplitIntoChunks(packet, chunkSize: 8, packetId: 1);
+                byte[] packet = CreateLargerTransportPacket(20);
+                List<byte[]> chunks = SplitIntoChunks(packet, chunkSize: 8, packetId: 1);
                 _reassembler.ProcessReceivedChunk(chunks[0]); // Only first chunk
 
                 // Act
@@ -352,8 +359,8 @@ namespace Tests.Unit.Communication.Protocol
                 // Now start a new sequence with same packet ID (but remaining=0 means single chunk)
                 // The cleared state means if we send remaining chunks, they won't combine properly
                 // Let's verify by sending a NEW complete packet instead
-                var newPacket = CreateMinimalTransportPacket(0x99);
-                var newChunk = CreateChunkWithNetInfo(newPacket, remainingChunks: 0, packetId: 1);
+                byte[] newPacket = CreateMinimalTransportPacket(0x99);
+                byte[] newChunk = CreateChunkWithNetInfo(newPacket, remainingChunks: 0, packetId: 1);
                 _reassembler.ProcessReceivedChunk(newChunk);
 
                 // Assert - Should get only the new packet, not a corrupted mix
@@ -382,13 +389,13 @@ namespace Tests.Unit.Communication.Protocol
             public void PacketIdReuse_StartsNewSequence()
             {
                 // Arrange - Complete first packet
-                var packet1 = CreateMinimalTransportPacket(0x11);
-                var chunk1 = CreateChunkWithNetInfo(packet1, remainingChunks: 0, packetId: 1);
+                byte[] packet1 = CreateMinimalTransportPacket(0x11);
+                byte[] chunk1 = CreateChunkWithNetInfo(packet1, remainingChunks: 0, packetId: 1);
                 _reassembler.ProcessReceivedChunk(chunk1);
 
                 // Complete second packet with same ID
-                var packet2 = CreateMinimalTransportPacket(0x22);
-                var chunk2 = CreateChunkWithNetInfo(packet2, remainingChunks: 0, packetId: 1);
+                byte[] packet2 = CreateMinimalTransportPacket(0x22);
+                byte[] chunk2 = CreateChunkWithNetInfo(packet2, remainingChunks: 0, packetId: 1);
                 _reassembler.ProcessReceivedChunk(chunk2);
 
                 // Assert
@@ -407,7 +414,7 @@ namespace Tests.Unit.Communication.Protocol
             [Fact]
             public void ProcessChunk_RaisesDiagnosticMessages()
             {
-                var chunk = CreateChunkWithNetInfo(CreateMinimalTransportPacket(), 0, 1);
+                byte[] chunk = CreateChunkWithNetInfo(CreateMinimalTransportPacket(), 0, 1);
 
                 _reassembler.ProcessReceivedChunk(chunk);
 
@@ -419,7 +426,7 @@ namespace Tests.Unit.Communication.Protocol
             [Fact]
             public void CompletePacket_LogsCompletion()
             {
-                var chunk = CreateChunkWithNetInfo(CreateMinimalTransportPacket(), 0, 1);
+                byte[] chunk = CreateChunkWithNetInfo(CreateMinimalTransportPacket(), 0, 1);
 
                 _reassembler.ProcessReceivedChunk(chunk);
 
@@ -435,15 +442,15 @@ namespace Tests.Unit.Communication.Protocol
         {
             // Create a minimal valid transport packet
             // Header (7) + App header (2) + CRC (2) = 11 bytes minimum
-            var appPacket = ApplicationLayer.Create(marker, 0x00, []).ApplicationPacket;
+            byte[] appPacket = ApplicationLayer.Create(marker, 0x00, []).ApplicationPacket;
             var transportLayer = TransportLayer.Create(CryptType.None, 0, appPacket);
             return transportLayer.TransportPacket;
         }
 
         private static byte[] CreateLargerTransportPacket(int payloadSize)
         {
-            var payload = ProtocolTestBuilders.CreateSequentialPayload(payloadSize);
-            var appPacket = ApplicationLayer.Create(0x01, 0x02, payload).ApplicationPacket;
+            byte[] payload = ProtocolTestBuilders.CreateSequentialPayload(payloadSize);
+            byte[] appPacket = ApplicationLayer.Create(0x01, 0x02, payload).ApplicationPacket;
             var transportLayer = TransportLayer.Create(CryptType.None, 0x12345678, appPacket);
             return transportLayer.TransportPacket;
         }

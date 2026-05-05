@@ -18,7 +18,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var netInfo = new NetInfo(0, false, 1, ProtocolVersion.V1);
 
             // Act
-            var result = netInfo.ToBytes();
+            byte[] result = netInfo.ToBytes();
 
             // Assert
             // Format: (RemainingChunks << 6) | (SetLength << 5) | (PacketId << 2) | Version
@@ -35,7 +35,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var netInfo = new NetInfo(0, true, 1, ProtocolVersion.V1);
 
             // Act
-            var result = netInfo.ToBytes();
+            byte[] result = netInfo.ToBytes();
 
             // Assert
             // (0 << 6) | (1 << 5) | (1 << 2) | 1 = 0x25 (V1 = 1)
@@ -49,7 +49,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var netInfo = new NetInfo(5, false, 1, ProtocolVersion.V1);
 
             // Act
-            var result = netInfo.ToBytes();
+            byte[] result = netInfo.ToBytes();
 
             // Assert
             // (5 << 6) | (0 << 5) | (1 << 2) | 1 = 0x45 + overflow
@@ -72,7 +72,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var netInfo = new NetInfo(0, false, packetId, ProtocolVersion.V1);
 
             // Act
-            var result = netInfo.ToBytes();
+            byte[] result = netInfo.ToBytes();
 
             // Assert
             Assert.Equal(2, result.Length);
@@ -102,7 +102,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var netInfo = new NetInfo(1023, false, 1, ProtocolVersion.V1);
 
             // Act
-            var result = netInfo.ToBytes();
+            byte[] result = netInfo.ToBytes();
 
             // Assert
             var decoded = NetInfo.FromBytes(result);
@@ -224,7 +224,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var original = new NetInfo(remainingChunks, setLength, packetId, version);
 
             // Act
-            var bytes = original.ToBytes();
+            byte[] bytes = original.ToBytes();
             var result = NetInfo.FromBytes(bytes);
 
             // Assert
@@ -243,7 +243,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
                 var original = new NetInfo(0, false, packetId, ProtocolVersion.V1);
 
                 // Act
-                var bytes = original.ToBytes();
+                byte[] bytes = original.ToBytes();
                 var result = NetInfo.FromBytes(bytes);
 
                 // Assert
@@ -275,7 +275,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             var netInfo = new NetInfo(5, true, 3, ProtocolVersion.V1);
 
             // Act
-            var result = netInfo.ToString();
+            string result = netInfo.ToString();
 
             // Assert - Record automatically generates ToString with property values
             Assert.Contains("5", result);

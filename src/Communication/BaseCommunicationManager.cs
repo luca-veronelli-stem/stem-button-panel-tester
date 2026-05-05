@@ -1,4 +1,4 @@
-﻿using Core.Interfaces.Communication;
+using Core.Interfaces.Communication;
 
 namespace Communication
 {

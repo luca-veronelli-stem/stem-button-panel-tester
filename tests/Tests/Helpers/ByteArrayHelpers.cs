@@ -12,14 +12,25 @@ namespace Tests.Helpers
 
         public bool Equals(byte[]? x, byte[]? y)
         {
-            if (ReferenceEquals(x, y)) return true;
-            if (x is null || y is null) return false;
+            if (ReferenceEquals(x, y))
+            {
+                return true;
+            }
+
+            if (x is null || y is null)
+            {
+                return false;
+            }
+
             return x.SequenceEqual(y);
         }
 
         public int GetHashCode(byte[] obj)
         {
-            if (obj is null || obj.Length == 0) return 0;
+            if (obj is null || obj.Length == 0)
+            {
+                return 0;
+            }
 
             // Simple hash combining first few bytes
             int hash = 17;
@@ -42,7 +53,7 @@ namespace Tests.Helpers
         /// </summary>
         public static byte[] WithBitFlip(this byte[] original, int byteIndex, byte mask = 0x01)
         {
-            var copy = original.ToArray();
+            byte[] copy = original.ToArray();
             copy[byteIndex] ^= mask;
             return copy;
         }
@@ -75,7 +86,7 @@ namespace Tests.Helpers
             Buffer.BlockCopy(first, 0, result, offset, first.Length);
             offset += first.Length;
 
-            foreach (var arr in others)
+            foreach (byte[] arr in others)
             {
                 Buffer.BlockCopy(arr, 0, result, offset, arr.Length);
                 offset += arr.Length;

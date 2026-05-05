@@ -3,7 +3,7 @@ using Communication.Protocol.Lib;
 namespace Tests.Unit.Communication.Protocol.Lib
 {
     /// <summary>
-    /// Test unitari per i metodi statici di utilit‡ ProtocolHelpers.
+    /// Test unitari per i metodi statici di utilit√† ProtocolHelpers.
     /// Verifica le conversioni byte e il calcolo CRC-16 Modbus.
     /// </summary>
     public class ProtocolHelpersTests
@@ -20,7 +20,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToLittleEndianBytes_UShort_ReturnsCorrectBytes(ushort value, byte[] expected)
         {
             // Act
-            var result = value.ToLittleEndianBytes();
+            byte[] result = value.ToLittleEndianBytes();
 
             // Assert
             Assert.Equal(expected, result);
@@ -33,7 +33,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             ushort value = 0x1234;
 
             // Act
-            var result = value.ToLittleEndianBytes();
+            byte[] result = value.ToLittleEndianBytes();
 
             // Assert
             Assert.Equal(2, result.Length);
@@ -55,7 +55,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToLittleEndianBytes_UInt_ReturnsCorrectBytes(uint value, byte[] expected)
         {
             // Act
-            var result = value.ToLittleEndianBytes();
+            byte[] result = value.ToLittleEndianBytes();
 
             // Assert
             Assert.Equal(expected, result);
@@ -68,7 +68,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             uint value = 0x12345678;
 
             // Act
-            var result = value.ToLittleEndianBytes();
+            byte[] result = value.ToLittleEndianBytes();
 
             // Assert
             Assert.Equal(4, result.Length);
@@ -86,7 +86,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToBigEndianBytes_UShort_ReturnsCorrectBytes(ushort value, byte[] expected)
         {
             // Act
-            var result = value.ToBigEndianBytes();
+            byte[] result = value.ToBigEndianBytes();
 
             // Assert
             Assert.Equal(expected, result);
@@ -98,7 +98,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToBigEndianBytes_UInt_ReturnsCorrectBytes(uint value, byte[] expected)
         {
             // Act
-            var result = value.ToBigEndianBytes();
+            byte[] result = value.ToBigEndianBytes();
 
             // Assert
             Assert.Equal(expected, result);
@@ -118,7 +118,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToUInt16_ValidBytes_ReturnsCorrectValue(byte[] bytes, ushort expected)
         {
             // Act
-            var result = bytes.ToUInt16();
+            ushort result = bytes.ToUInt16();
 
             // Assert
             Assert.Equal(expected, result);
@@ -151,8 +151,8 @@ namespace Tests.Unit.Communication.Protocol.Lib
             ushort original = 0x1234;
 
             // Act
-            var bytes = original.ToLittleEndianBytes();
-            var result = bytes.ToUInt16();
+            byte[] bytes = original.ToLittleEndianBytes();
+            ushort result = bytes.ToUInt16();
 
             // Assert
             Assert.Equal(original, result);
@@ -172,7 +172,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToInt32_ValidBytes_ReturnsCorrectValue(byte[] bytes, int expected)
         {
             // Act
-            var result = bytes.ToInt32();
+            int result = bytes.ToInt32();
 
             // Assert
             Assert.Equal(expected, result);
@@ -216,7 +216,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
         public void ToUInt32_ValidBytes_ReturnsCorrectValue(byte[] bytes, uint expected)
         {
             // Act
-            var result = bytes.ToUInt32();
+            uint result = bytes.ToUInt32();
 
             // Assert
             Assert.Equal(expected, result);
@@ -251,8 +251,8 @@ namespace Tests.Unit.Communication.Protocol.Lib
             uint original = 0xDEADBEEF;
 
             // Act
-            var bytes = original.ToLittleEndianBytes();
-            var result = bytes.ToUInt32();
+            byte[] bytes = original.ToLittleEndianBytes();
+            uint result = bytes.ToUInt32();
 
             // Assert
             Assert.Equal(original, result);
@@ -269,7 +269,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] buffer = [0x12, 0x34];
 
             // Act
-            var result = ProtocolHelpers.ReadUInt16BigEndian(buffer);
+            ushort result = ProtocolHelpers.ReadUInt16BigEndian(buffer);
 
             // Assert
             Assert.Equal((ushort)0x1234, result);
@@ -282,7 +282,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] buffer = [0x12, 0x34, 0x56, 0x78];
 
             // Act
-            var result = ProtocolHelpers.ReadUInt32BigEndian(buffer);
+            uint result = ProtocolHelpers.ReadUInt32BigEndian(buffer);
 
             // Assert
             Assert.Equal(0x12345678u, result);
@@ -295,7 +295,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] buffer = [0x00, 0x00, 0x12, 0x34];
 
             // Act
-            var result = ProtocolHelpers.ReadUInt16BigEndian(buffer, 2);
+            ushort result = ProtocolHelpers.ReadUInt16BigEndian(buffer, 2);
 
             // Assert
             Assert.Equal((ushort)0x1234, result);
@@ -312,7 +312,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data = [];
 
             // Act
-            var result = ProtocolHelpers.CalculateCrc(data);
+            ushort result = ProtocolHelpers.CalculateCrc(data);
 
             // Assert - CRC-16 Modbus con inizializzazione 0xFFFF e nessun dato restituisce 0xFFFF
             Assert.Equal(0xFFFF, result);
@@ -335,7 +335,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data = [0x31]; // ASCII '1'
 
             // Act
-            var result = ProtocolHelpers.CalculateCrc(data);
+            ushort result = ProtocolHelpers.CalculateCrc(data);
 
             // Assert - Il CRC deve essere diverso dal valore iniziale
             Assert.NotEqual(0xFFFF, result);
@@ -348,8 +348,8 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data = [1, 2, 3, 4, 5];
 
             // Act
-            var result1 = ProtocolHelpers.CalculateCrc(data);
-            var result2 = ProtocolHelpers.CalculateCrc(data);
+            ushort result1 = ProtocolHelpers.CalculateCrc(data);
+            ushort result2 = ProtocolHelpers.CalculateCrc(data);
 
             // Assert
             Assert.Equal(result1, result2);
@@ -363,8 +363,8 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data2 = [1, 2, 3, 4, 6];
 
             // Act
-            var result1 = ProtocolHelpers.CalculateCrc(data1);
-            var result2 = ProtocolHelpers.CalculateCrc(data2);
+            ushort result1 = ProtocolHelpers.CalculateCrc(data1);
+            ushort result2 = ProtocolHelpers.CalculateCrc(data2);
 
             // Assert
             Assert.NotEqual(result1, result2);
@@ -378,7 +378,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data = "123456789"u8.ToArray();
 
             // Act
-            var result = ProtocolHelpers.CalculateCrc(data);
+            ushort result = ProtocolHelpers.CalculateCrc(data);
 
             // Assert
             Assert.Equal(0x4B37, result);
@@ -392,7 +392,7 @@ namespace Tests.Unit.Communication.Protocol.Lib
             Random.Shared.NextBytes(data);
 
             // Act
-            var result = ProtocolHelpers.CalculateCrc(data);
+            ushort result = ProtocolHelpers.CalculateCrc(data);
 
             // Assert - Verifica solo che completi e restituisca un valore valido
             Assert.True(result >= 0 && result <= 0xFFFF);
@@ -406,8 +406,8 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data2 = [0x02, 0x01];
 
             // Act
-            var result1 = ProtocolHelpers.CalculateCrc(data1);
-            var result2 = ProtocolHelpers.CalculateCrc(data2);
+            ushort result1 = ProtocolHelpers.CalculateCrc(data1);
+            ushort result2 = ProtocolHelpers.CalculateCrc(data2);
 
             // Assert
             Assert.NotEqual(result1, result2);
@@ -420,8 +420,8 @@ namespace Tests.Unit.Communication.Protocol.Lib
             byte[] data = [0x01, 0x02, 0x03, 0x04, 0x05];
 
             // Act
-            var resultArray = ProtocolHelpers.CalculateCrc(data);
-            var resultSpan = ProtocolHelpers.CalculateCrc(data.AsSpan());
+            ushort resultArray = ProtocolHelpers.CalculateCrc(data);
+            ushort resultSpan = ProtocolHelpers.CalculateCrc(data.AsSpan());
 
             // Assert
             Assert.Equal(resultArray, resultSpan);

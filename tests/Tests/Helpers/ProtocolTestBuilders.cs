@@ -73,7 +73,7 @@ namespace Tests.Helpers
         {
             applicationPacket ??= [0x01, 0x02, 0x03];
             var layer = TransportLayer.Create(cryptFlag, senderId, applicationPacket);
-            var packet = layer.TransportPacket.ToArray();
+            byte[] packet = layer.TransportPacket.ToArray();
 
             if (corruptCrc)
             {
@@ -166,7 +166,10 @@ namespace Tests.Helpers
         {
             byte[] payload = new byte[256];
             for (int i = 0; i < 256; i++)
+            {
                 payload[i] = (byte)i;
+            }
+
             return payload;
         }
 

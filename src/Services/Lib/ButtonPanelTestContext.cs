@@ -39,12 +39,12 @@ namespace Services.Lib
         public bool AllButtonsPassed { get; set; } = true;
 
         /// <summary>
-        /// Indica se il test LED è passato.
+        /// Indica se il test LED Ã¨ passato.
         /// </summary>
         public bool LedTestPassed { get; set; } = true;
 
         /// <summary>
-        /// Indica se il test buzzer è passato.
+        /// Indica se il test buzzer Ã¨ passato.
         /// </summary>
         public bool BuzzerTestPassed { get; set; }
 

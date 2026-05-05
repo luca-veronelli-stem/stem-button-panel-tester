@@ -88,9 +88,13 @@ public readonly struct Result<T> : IEquatable<Result<T>>
         Action<Error> onFailure)
     {
         if (IsSuccess)
+        {
             onSuccess(_value!);
+        }
         else
+        {
             onFailure(_error!.Value);
+        }
     }
 
     /// <summary>
@@ -140,7 +144,10 @@ public readonly struct Result<T> : IEquatable<Result<T>>
     public Result<T> OnSuccess(Action<T> action)
     {
         if (IsSuccess)
+        {
             action(_value!);
+        }
+
         return this;
     }
 
@@ -150,7 +157,10 @@ public readonly struct Result<T> : IEquatable<Result<T>>
     public Result<T> OnFailure(Action<Error> action)
     {
         if (IsFailure)
+        {
             action(_error!.Value);
+        }
+
         return this;
     }
 
@@ -247,9 +257,13 @@ public readonly struct Result : IEquatable<Result>
         Action<Error> onFailure)
     {
         if (IsSuccess)
+        {
             onSuccess();
+        }
         else
+        {
             onFailure(_error!.Value);
+        }
     }
 
     /// <summary>
@@ -267,7 +281,10 @@ public readonly struct Result : IEquatable<Result>
     public Result OnSuccess(Action action)
     {
         if (IsSuccess)
+        {
             action();
+        }
+
         return this;
     }
 
@@ -277,7 +294,10 @@ public readonly struct Result : IEquatable<Result>
     public Result OnFailure(Action<Error> action)
     {
         if (IsFailure)
+        {
             action(_error!.Value);
+        }
+
         return this;
     }
 

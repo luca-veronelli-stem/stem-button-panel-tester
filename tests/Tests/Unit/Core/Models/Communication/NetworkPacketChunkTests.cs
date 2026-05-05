@@ -149,7 +149,7 @@ namespace Tests.Unit.Core.Models.Communication
             var packet = new NetworkPacketChunk(netInfo, id, chunk);
 
             // Act - Deconstruct the record
-            var (deconstructedNetInfo, deconstructedId, deconstructedChunk) = packet;
+            (byte[]? deconstructedNetInfo, uint deconstructedId, byte[]? deconstructedChunk) = packet;
 
             // Assert
             Assert.Equal(netInfo, deconstructedNetInfo);
@@ -166,7 +166,7 @@ namespace Tests.Unit.Core.Models.Communication
             var original = new NetworkPacketChunk(netInfo, 100, chunk);
 
             // Act - Use 'with' to create modified copy
-            var modified = original with { Id = 200 };
+            NetworkPacketChunk modified = original with { Id = 200 };
 
             // Assert
             Assert.Equal(100u, original.Id);

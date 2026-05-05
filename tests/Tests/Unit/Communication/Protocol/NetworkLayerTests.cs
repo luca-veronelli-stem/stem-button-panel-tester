@@ -1,6 +1,7 @@
 using Communication.Protocol.Layers;
 using Communication.Protocol.Lib;
 using Core.Enums;
+using Core.Models.Communication;
 using Tests.Helpers;
 
 namespace Tests.Unit.Communication.Protocol
@@ -132,7 +133,7 @@ namespace Tests.Unit.Communication.Protocol
             {
                 var layer = NetworkLayer.Create(0, new byte[20], chunkSize: 3);
 
-                var firstPacketId = NetInfo.FromBytes(layer.NetworkPackets[0].NetInfo).PacketId;
+                int firstPacketId = NetInfo.FromBytes(layer.NetworkPackets[0].NetInfo).PacketId;
 
                 Assert.All(layer.NetworkPackets, p =>
                 {
@@ -158,7 +159,7 @@ namespace Tests.Unit.Communication.Protocol
 
                 var layer = NetworkLayer.Create(0, transportPacket, chunkSize: 4);
 
-                var combined = layer.NetworkPackets.SelectMany(p => p.Chunk).ToArray();
+                byte[] combined = layer.NetworkPackets.SelectMany(p => p.Chunk).ToArray();
                 Assert.Equal(transportPacket, combined);
             }
 
@@ -272,7 +273,7 @@ namespace Tests.Unit.Communication.Protocol
 
                 var layer = NetworkLayer.Create(0, transportPacket, chunkSize: 8);
 
-                var combined = layer.NetworkPackets.SelectMany(p => p.Chunk).ToArray();
+                byte[] combined = layer.NetworkPackets.SelectMany(p => p.Chunk).ToArray();
                 Assert.Equal(transportPacket, combined);
             }
 
@@ -283,7 +284,7 @@ namespace Tests.Unit.Communication.Protocol
                 byte[] transportPacket = [0x01, 0x02, 0x03, 0x04, 0x05];
 
                 var layer = NetworkLayer.Create(recipientId, transportPacket, chunkSize: 10);
-                var packet = layer.NetworkPackets[0];
+                NetworkPacketChunk packet = layer.NetworkPackets[0];
 
                 Assert.Equal(2, packet.NetInfo.Length);
                 Assert.Equal(recipientId, packet.Id);

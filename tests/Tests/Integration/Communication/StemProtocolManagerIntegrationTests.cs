@@ -1,6 +1,8 @@
 using Communication.Protocol.Layers;
 using Communication.Protocol.Lib;
 using Core.Enums;
+using Core.Models;
+using Core.Models.Communication;
 using Tests.Helpers;
 
 namespace Tests.Integration.Communication
@@ -25,7 +27,7 @@ namespace Tests.Integration.Communication
                 using var harness = new ProtocolManagerTestHarness();
 
                 // Build and process single-chunk packet
-                var result = harness.RoundTrip(0x0102, payload, chunkSize: 100);
+                byte[] result = harness.RoundTrip(0x0102, payload, chunkSize: 100);
 
                 Assert.Equal(payload, result);
                 Assert.Equal(1, harness.DecodeCount);
@@ -38,12 +40,12 @@ namespace Tests.Integration.Communication
                 byte[] payload = ProtocolTestBuilders.CreateSequentialPayload(100);
 
                 // Building creates multiple chunks
-                var packets = harness.BuildPackets(0xFFFF, payload, chunkSize: 8);
+                IReadOnlyList<NetworkPacketChunk> packets = harness.BuildPackets(0xFFFF, payload, chunkSize: 8);
 
                 Assert.True(packets.Count > 10);
 
                 // Verify the chunks can be reassembled (combined chunks = transport packet)
-                var combined = packets.SelectMany(p => p.Chunk).ToArray();
+                byte[] combined = packets.SelectMany(p => p.Chunk).ToArray();
                 var expectedApp = ApplicationLayer.Create(0xFFFF, payload);
                 var expectedTransport = TransportLayer.Create(CryptType.None, 123, expectedApp.ApplicationPacket);
                 Assert.Equal(expectedTransport.TransportPacket, combined);
@@ -61,7 +63,7 @@ namespace Tests.Integration.Communication
 
                 harness.RoundTrip(command, [0x42], chunkSize: 100);
 
-                var evt = harness.LastDecodedEvent!;
+                AppLayerDecoderEventArgs evt = harness.LastDecodedEvent!;
                 Assert.Equal((byte)(command >> 8), evt.Payload[0]);
                 Assert.Equal((byte)(command & 0xFF), evt.Payload[1]);
             }
@@ -82,10 +84,10 @@ namespace Tests.Integration.Communication
                 uint senderId = 0x11223344;
                 uint recipientId = 0x55667788;
 
-                var packets = harness.BuildPackets(command, payload, senderId, recipientId, chunkSize: 100);
+                IReadOnlyList<NetworkPacketChunk> packets = harness.BuildPackets(command, payload, senderId, recipientId, chunkSize: 100);
 
                 Assert.Single(packets);
-                var packet = packets[0];
+                NetworkPacketChunk packet = packets[0];
 
                 // Verify network layer
                 var netInfo = NetInfo.FromBytes(packet.NetInfo);
@@ -103,17 +105,17 @@ namespace Tests.Integration.Communication
             public void CrcValidation_WorksEndToEnd()
             {
                 using var harness = new ProtocolManagerTestHarness();
-                var packets = harness.BuildPackets(0x0102, [1, 2, 3], chunkSize: 100);
+                IReadOnlyList<NetworkPacketChunk> packets = harness.BuildPackets(0x0102, [1, 2, 3], chunkSize: 100);
 
                 // Valid packet decodes
-                var validResult = harness.ProcessPacket(packets[0]);
+                byte[] validResult = harness.ProcessPacket(packets[0]);
                 Assert.Equal([1, 2, 3], validResult);
 
                 // Corrupted packet fails
                 harness.ClearEvents();
-                var transportPacket = packets[0].Chunk.ToArray();
+                byte[] transportPacket = packets[0].Chunk.ToArray();
                 transportPacket[^1] ^= 0xFF;
-                var corruptedResult = harness.Manager.ProcessReceivedPacket(transportPacket);
+                byte[] corruptedResult = harness.Manager.ProcessReceivedPacket(transportPacket);
 
                 Assert.Empty(corruptedResult);
                 Assert.Contains("CRC", harness.LastErrorEvent!.Message, StringComparison.OrdinalIgnoreCase);
@@ -130,14 +132,14 @@ namespace Tests.Integration.Communication
             public void CorruptedTransportHeader_RaisesError()
             {
                 using var harness = new ProtocolManagerTestHarness();
-                var packets = harness.BuildPackets(0x0102, [1, 2, 3], chunkSize: 100);
-                var transportPacket = packets[0].Chunk.ToArray();
+                IReadOnlyList<NetworkPacketChunk> packets = harness.BuildPackets(0x0102, [1, 2, 3], chunkSize: 100);
+                byte[] transportPacket = packets[0].Chunk.ToArray();
 
                 // Corrupt LPack field to claim more data than available
                 transportPacket[5] = 0xFF;
                 transportPacket[6] = 0xFF;
 
-                var result = harness.Manager.ProcessReceivedPacket(transportPacket);
+                byte[] result = harness.Manager.ProcessReceivedPacket(transportPacket);
 
                 Assert.Empty(result);
                 Assert.True(harness.ErrorCount > 0);
@@ -148,7 +150,7 @@ namespace Tests.Integration.Communication
             {
                 using var harness = new ProtocolManagerTestHarness();
 
-                var result = harness.Manager.ProcessReceivedPacket(new byte[5]);
+                byte[] result = harness.Manager.ProcessReceivedPacket(new byte[5]);
 
                 Assert.Empty(result);
                 Assert.True(harness.ErrorCount > 0);
@@ -169,7 +171,7 @@ namespace Tests.Integration.Communication
 
                 harness.RoundTrip(0x0A0B, payload, chunkSize: 100);
 
-                var evt = harness.LastDecodedEvent!;
+                AppLayerDecoderEventArgs evt = harness.LastDecodedEvent!;
                 Assert.Equal(0x0A, evt.Payload[0]);
                 Assert.Equal(0x0B, evt.Payload[1]);
                 Assert.Equal(payload, evt.Payload[2..]);
@@ -215,11 +217,11 @@ namespace Tests.Integration.Communication
             {
                 using var harness = new ProtocolManagerTestHarness();
 
-                foreach (var size in new[] { 0, 1, 10, 100, 500, 1000 })
+                foreach (int size in new[] { 0, 1, 10, 100, 500, 1000 })
                 {
                     byte[] payload = ProtocolTestBuilders.CreateSequentialPayload(size);
                     // Use large chunk size to ensure single chunk for ProcessReceivedPacket
-                    var result = harness.RoundTrip(0x0102, payload, chunkSize: 2000);
+                    byte[] result = harness.RoundTrip(0x0102, payload, chunkSize: 2000);
                     Assert.Equal(payload, result);
                 }
 
@@ -241,8 +243,8 @@ namespace Tests.Integration.Communication
                 byte[] payload1 = [1, 2, 3, 4, 5];
                 byte[] payload2 = [6, 7, 8, 9, 10];
 
-                var result1 = harness.RoundTrip(0x0101, payload1, chunkSize: 100);
-                var result2 = harness.RoundTrip(0x0202, payload2, chunkSize: 100);
+                byte[] result1 = harness.RoundTrip(0x0101, payload1, chunkSize: 100);
+                byte[] result2 = harness.RoundTrip(0x0202, payload2, chunkSize: 100);
 
                 Assert.Equal(payload1, result1);
                 Assert.Equal(payload2, result2);
@@ -258,7 +260,7 @@ namespace Tests.Integration.Communication
                 for (int i = 0; i < packetCount; i++)
                 {
                     byte[] payload = ProtocolTestBuilders.CreateSequentialPayload(5);
-                    var result = harness.RoundTrip((ushort)(0x0100 + i), payload, chunkSize: 100);
+                    byte[] result = harness.RoundTrip((ushort)(0x0100 + i), payload, chunkSize: 100);
                     Assert.Equal(payload, result);
                 }
 

@@ -44,7 +44,7 @@ namespace Tests.Unit.Communication.Protocol
                 byte[] appPacket = [0x01, 0x02, 0x03];
 
                 var layer = TransportLayer.Create(CryptType.None, senderId, appPacket);
-                var header = layer.TransportHeader;
+                byte[] header = layer.TransportHeader;
 
                 Assert.Equal(HeaderSize, header.Length);
                 Assert.Equal((byte)CryptType.None, header[0]);
@@ -59,10 +59,10 @@ namespace Tests.Unit.Communication.Protocol
 
                 var layer = TransportLayer.Create(CryptType.None, 0, appPacket);
 
-                var dataForCrc = layer.TransportHeader.Concat(appPacket).ToArray();
-                var expectedCrc = ProtocolHelpers.CalculateCrc(dataForCrc);
-                var crcBytes = layer.TransportPacket[^CrcSize..];
-                var actualCrc = (ushort)((crcBytes[0] << 8) | crcBytes[1]);
+                byte[] dataForCrc = layer.TransportHeader.Concat(appPacket).ToArray();
+                ushort expectedCrc = ProtocolHelpers.CalculateCrc(dataForCrc);
+                byte[] crcBytes = layer.TransportPacket[^CrcSize..];
+                ushort actualCrc = (ushort)((crcBytes[0] << 8) | crcBytes[1]);
 
                 Assert.Equal(expectedCrc, actualCrc);
             }
@@ -157,7 +157,7 @@ namespace Tests.Unit.Communication.Protocol
             public void CorruptedCrc_IsValidFalse()
             {
                 var layer = TransportLayer.Create(CryptType.None, 0, [0x01, 0x02, 0x03]);
-                var corrupted = layer.TransportPacket.WithCorruptedCrc();
+                byte[] corrupted = layer.TransportPacket.WithCorruptedCrc();
 
                 var parsed = TransportLayer.Parse(corrupted);
 
@@ -169,7 +169,7 @@ namespace Tests.Unit.Communication.Protocol
             public void CorruptedData_IsValidFalse()
             {
                 var layer = TransportLayer.Create(CryptType.None, 0, [0x01, 0x02, 0x03]);
-                var corrupted = layer.TransportPacket.WithBitFlip(HeaderSize);
+                byte[] corrupted = layer.TransportPacket.WithBitFlip(HeaderSize);
 
                 var parsed = TransportLayer.Parse(corrupted);
 
@@ -182,7 +182,7 @@ namespace Tests.Unit.Communication.Protocol
             public void AnyCorruptedCrcByte_IsValidFalse(int crcByteIndex)
             {
                 var layer = TransportLayer.Create(CryptType.None, 0, [0x01, 0x02, 0x03]);
-                var packet = layer.TransportPacket.ToArray();
+                byte[] packet = layer.TransportPacket.ToArray();
                 int crcOffset = HeaderSize + 3;  // After header + app packet
                 packet[crcOffset + crcByteIndex] ^= 0x01;
 
@@ -195,7 +195,7 @@ namespace Tests.Unit.Communication.Protocol
             public void SingleBitFlip_Detected()
             {
                 var layer = TransportLayer.Create(CryptType.None, 0, [0x01, 0x02, 0x03, 0x04, 0x05]);
-                var corrupted = layer.TransportPacket.WithBitFlip(HeaderSize + 2, 0x01);
+                byte[] corrupted = layer.TransportPacket.WithBitFlip(HeaderSize + 2, 0x01);
 
                 var parsed = TransportLayer.Parse(corrupted);
 

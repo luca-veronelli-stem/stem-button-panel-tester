@@ -1,4 +1,4 @@
-﻿namespace Communication.Protocol.Lib
+namespace Communication.Protocol.Lib
 {
     /// <summary>
     /// Fornisce metodi di utilità per la gestione del protocollo di comunicazione STEM.
@@ -42,7 +42,11 @@
         /// <returns>Valore letto, oppure 0 se il buffer è insufficiente.</returns>
         public static ushort ReadUInt16LittleEndian(ReadOnlySpan<byte> buffer, int offset = 0)
         {
-            if (buffer.Length < offset + 2) return 0;
+            if (buffer.Length < offset + 2)
+            {
+                return 0;
+            }
+
             return (ushort)(buffer[offset] | (buffer[offset + 1] << 8));
         }
 
@@ -55,7 +59,10 @@
         public static ushort ToUInt16(this byte[] bytes)
         {
             if (bytes == null || bytes.Length != 2)
+            {
                 throw new ArgumentException("L'array di byte deve contenere esattamente 2 byte.", nameof(bytes));
+            }
+
             return (ushort)(bytes[0] | (bytes[1] << 8));
         }
 
@@ -68,7 +75,10 @@
         public static int ToInt32(this byte[] bytes)
         {
             if (bytes == null || bytes.Length != 4)
+            {
                 throw new ArgumentException("L'array di byte deve contenere esattamente 4 byte.", nameof(bytes));
+            }
+
             return bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24);
         }
 
@@ -81,7 +91,10 @@
         public static uint ToUInt32(this byte[] bytes)
         {
             if (bytes == null || bytes.Length != 4)
+            {
                 throw new ArgumentException("L'array di byte deve contenere esattamente 4 byte.", nameof(bytes));
+            }
+
             return (uint)(bytes[0] | (bytes[1] << 8) | (bytes[2] << 16) | (bytes[3] << 24));
         }
 
@@ -123,7 +136,11 @@
         /// <returns>Valore letto, oppure 0 se il buffer è insufficiente.</returns>
         public static ushort ReadUInt16BigEndian(ReadOnlySpan<byte> buffer, int offset = 0)
         {
-            if (buffer.Length < offset + 2) return 0;
+            if (buffer.Length < offset + 2)
+            {
+                return 0;
+            }
+
             return (ushort)((buffer[offset] << 8) | buffer[offset + 1]);
         }
 
@@ -135,7 +152,11 @@
         /// <returns>Valore letto, oppure 0 se il buffer è insufficiente.</returns>
         public static uint ReadUInt32BigEndian(ReadOnlySpan<byte> buffer, int offset = 0)
         {
-            if (buffer.Length < offset + 4) return 0;
+            if (buffer.Length < offset + 4)
+            {
+                return 0;
+            }
+
             return (uint)((buffer[offset] << 24) | (buffer[offset + 1] << 16) |
                           (buffer[offset + 2] << 8) | buffer[offset + 3]);
         }

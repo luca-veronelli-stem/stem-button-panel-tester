@@ -1,4 +1,4 @@
-﻿using Peak.Can.Basic;
+using Peak.Can.Basic;
 
 namespace Infrastructure.Lib
 {

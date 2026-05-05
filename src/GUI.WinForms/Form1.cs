@@ -22,7 +22,7 @@ namespace GUI.Windows
             AutoScroll = true;
 
             // Load icon from embedded resource bytes
-            var iconBytes = Properties.Resources.Ztem;
+            byte[] iconBytes = Properties.Resources.Ztem;
             if (iconBytes != null && iconBytes.Length > 0)
             {
                 using var ms = new MemoryStream(iconBytes);
@@ -34,8 +34,8 @@ namespace GUI.Windows
 
         private void SetupControls()
         {
-            var service = _serviceProvider.GetRequiredService<IButtonPanelTestService>();
-            var repositoryFactory = _serviceProvider.GetRequiredService<IProtocolRepositoryFactory>();
+            IButtonPanelTestService service = _serviceProvider.GetRequiredService<IButtonPanelTestService>();
+            IProtocolRepositoryFactory repositoryFactory = _serviceProvider.GetRequiredService<IProtocolRepositoryFactory>();
 
             var view = new ButtonPanelTestUserControl();
             _presenter = new ButtonPanelTestPresenter(view, service, repositoryFactory);

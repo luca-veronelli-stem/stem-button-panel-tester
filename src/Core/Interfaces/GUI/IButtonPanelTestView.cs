@@ -1,7 +1,6 @@
-﻿using Core.Enums;
-using Core.Models.Services;
-
 using System.Drawing;
+using Core.Enums;
+using Core.Models.Services;
 
 namespace Core.Interfaces.GUI
 {

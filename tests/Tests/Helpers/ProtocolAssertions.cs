@@ -12,7 +12,7 @@ namespace Tests.Helpers
         {
             if (expected.Length != actual.Length)
             {
-                var msg = message ?? "Byte arrays differ in length";
+                string msg = message ?? "Byte arrays differ in length";
                 throw new Xunit.Sdk.XunitException(
                     $"{msg}: expected length {expected.Length}, actual length {actual.Length}");
             }
@@ -21,7 +21,7 @@ namespace Tests.Helpers
             {
                 if (expected[i] != actual[i])
                 {
-                    var msg = message ?? "Byte arrays differ";
+                    string msg = message ?? "Byte arrays differ";
                     throw new Xunit.Sdk.XunitException(
                         $"{msg} at index {i}: expected 0x{expected[i]:X2}, actual 0x{actual[i]:X2}\n" +
                         $"Expected: {FormatBytes(expected)}\n" +

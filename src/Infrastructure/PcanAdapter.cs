@@ -1,4 +1,4 @@
-﻿using Core.Interfaces.Infrastructure;
+using Core.Interfaces.Infrastructure;
 using Core.Models.Communication;
 using Infrastructure.Lib;
 using Microsoft.Extensions.Logging;
@@ -94,7 +94,7 @@ namespace Infrastructure
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!TryParseConfig(config, out var baudRate))
+            if (!TryParseConfig(config, out Bitrate baudRate))
             {
                 _logger.LogWarning("Invalid CAN configuration: '{Config}'", config);
                 return Task.FromResult(false);
@@ -122,18 +122,20 @@ namespace Infrastructure
         private async Task<bool> ConnectInternalAsync(Bitrate baudRate, CancellationToken cancellationToken = default)
         {
             if (_isDisposed)
+            {
                 return false;
+            }
 
             _logger.LogInformation("PCAN: Connecting to {Channel} at {BaudRate}", _channel, baudRate);
 
             // Reset completo del canale
-            var uninitStatus = _api.Uninitialize(_channel);
+            PcanStatus uninitStatus = _api.Uninitialize(_channel);
             _logger.LogDebug("PCAN: Uninitialize result: {Status}", uninitStatus);
 
             // Attesa più lunga dopo uninitialize per dare tempo al driver
             await Task.Delay(200, cancellationToken).ConfigureAwait(false);
 
-            var status = _api.Initialize(_channel, baudRate);
+            PcanStatus status = _api.Initialize(_channel, baudRate);
             if (status != PcanStatus.OK)
             {
                 _logger.LogError("PCAN: Initialization FAILED: {Status}", status);
@@ -145,12 +147,12 @@ namespace Infrastructure
             _logger.LogDebug("PCAN: Initialize OK, resetting bus...");
 
             // Reset del bus per eliminare errori residui
-            var resetStatus = _api.Reset(_channel);
+            PcanStatus resetStatus = _api.Reset(_channel);
             _logger.LogDebug("PCAN: Reset result: {Status}", resetStatus);
 
             await Task.Delay(100, cancellationToken).ConfigureAwait(false);
 
-            var busStatus = _api.GetStatus(_channel);
+            PcanStatus busStatus = _api.GetStatus(_channel);
             _lastBusStatus = busStatus;
             _logger.LogInformation("PCAN: Connected to {Channel}. Initial bus status: {BusStatus}", _channel, busStatus);
 
@@ -164,7 +166,7 @@ namespace Infrastructure
             ConnectionStatusChanged?.Invoke(this, true);
 
             // Atomically swap and dispose old CTS
-            var oldCts = Interlocked.Exchange(ref _cts, new CancellationTokenSource());
+            CancellationTokenSource? oldCts = Interlocked.Exchange(ref _cts, new CancellationTokenSource());
             if (oldCts != null)
             {
                 try
@@ -189,18 +191,20 @@ namespace Infrastructure
         public async Task DisconnectAsync(CancellationToken cancellationToken = default)
         {
             if (!IsConnected)
+            {
                 return;
+            }
 
             cancellationToken.ThrowIfCancellationRequested();
 
             // Log statistiche finali
-            var uptime = DateTime.UtcNow - _connectionStartTime;
+            TimeSpan uptime = DateTime.UtcNow - _connectionStartTime;
             _logger.LogInformation(
                 "PCAN: Disconnecting. Session stats: Uptime={Uptime:hh\\:mm\\:ss}, RX={RxCount}, TX={TxCount}, TxFail={TxFail}, ReadErrors={ReadErrors}, Recoveries={Recoveries} (Failed={FailedRecoveries})",
                 uptime, _totalRxCount, _totalTxCount, _totalTxFailCount, _totalReadErrors, _totalRecoveryAttempts, _failedRecoveryAttempts);
 
             // Atomically get and clear the CTS to prevent race conditions
-            var cts = Interlocked.Exchange(ref _cts, null);
+            CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
             if (cts != null)
             {
                 try
@@ -267,7 +271,7 @@ namespace Infrastructure
                 msg.Data[i] = data[i];
             }
 
-            var status = _api.Write(_channel, msg);
+            PcanStatus status = _api.Write(_channel, msg);
             _lastTxTime = DateTime.UtcNow;
 
             if (status != PcanStatus.OK)
@@ -275,7 +279,7 @@ namespace Infrastructure
                 _totalTxFailCount++;
 
                 // Log dettagliato dell'errore
-                var postStatus = _api.GetStatus(_channel);
+                PcanStatus postStatus = _api.GetStatus(_channel);
                 _logger.LogWarning(
                     "PCAN TX FAILED: ID=0x{ArbitrationId:X8}, WriteStatus={WriteStatus}, BusStatus={BusStatus}, TotalTxFail={TotalFail}",
                     arbitrationId, status, postStatus, _totalTxFailCount);
@@ -309,7 +313,7 @@ namespace Infrastructure
             _logger.LogInformation("PCAN: Read loop STARTED on {Channel}", _channel);
 
             // Log immediato dello stato iniziale del bus
-            var initialStatus = _api.GetStatus(_channel);
+            PcanStatus initialStatus = _api.GetStatus(_channel);
             _logger.LogDebug("PCAN: Initial bus status in read loop: {Status}", initialStatus);
 
             try
@@ -327,9 +331,9 @@ namespace Infrastructure
                     // Log dettagliato periodico (ogni ~5 secondi)
                     if (loopCount % STATUS_LOG_INTERVAL_LOOPS == 0)
                     {
-                        var busStatus = _api.GetStatus(_channel);
-                        var timeSinceLastRx = DateTime.UtcNow - _lastMessageTime;
-                        var timeSinceLastTx = DateTime.UtcNow - _lastTxTime;
+                        PcanStatus busStatus = _api.GetStatus(_channel);
+                        TimeSpan timeSinceLastRx = DateTime.UtcNow - _lastMessageTime;
+                        TimeSpan timeSinceLastTx = DateTime.UtcNow - _lastTxTime;
 
                         _logger.LogDebug(
                             "PCAN STATUS: Loop={Loop}, TotalRX={TotalRx}, ConsecErr={ConsecErr}, ConsecEmpty={ConsecEmpty}, " +
@@ -352,7 +356,7 @@ namespace Infrastructure
                         }
                     }
 
-                    var status = _api.Read(_channel, out var msg, out var timestamp);
+                    PcanStatus status = _api.Read(_channel, out PcanMessage? msg, out ulong timestamp);
 
                     if (status == PcanStatus.OK)
                     {
@@ -370,7 +374,7 @@ namespace Infrastructure
                             _logger.LogInformation("PCAN: Recovery VERIFIED - messages are being received again");
                         }
 
-                        var payload = new byte[msg.DLC];
+                        byte[] payload = new byte[msg.DLC];
                         Array.Copy(msg.Data, payload, msg.DLC);
 
                         var packet = new CanPacket(
@@ -399,7 +403,7 @@ namespace Infrastructure
                         // Log errori di lettura (primi 3, poi ogni 50)
                         if (consecutiveErrors <= 3 || consecutiveErrors % 50 == 0)
                         {
-                            var busStatus = _api.GetStatus(_channel);
+                            PcanStatus busStatus = _api.GetStatus(_channel);
                             _logger.LogWarning(
                                 "PCAN READ ERROR: Status={Status}, BusStatus={BusStatus}, Consecutive={ConsecErr}, TotalErrors={TotalErr}",
                                 status, busStatus, consecutiveErrors, _totalReadErrors);
@@ -439,7 +443,7 @@ namespace Infrastructure
             }
             finally
             {
-                var loopDuration = DateTime.UtcNow - loopStartTime;
+                TimeSpan loopDuration = DateTime.UtcNow - loopStartTime;
                 _logger.LogInformation(
                     "PCAN: Read loop STOPPED. Duration={Duration:hh\\:mm\\:ss}, Loops={LoopCount}, TotalRX={TotalRx}, TotalErrors={TotalErrors}",
                     loopDuration, loopCount, _totalRxCount, _totalReadErrors);
@@ -451,12 +455,12 @@ namespace Infrastructure
         /// </summary>
         private async Task PerformHealthCheckAsync(int loopCount, int consecutiveErrors, int consecutiveEmptyReads, CancellationToken ct)
         {
-            var timeSinceLastRx = DateTime.UtcNow - _lastMessageTime;
+            TimeSpan timeSinceLastRx = DateTime.UtcNow - _lastMessageTime;
 
             // Verifica se il recovery precedente ha funzionato
             if (_recoveryVerificationPending)
             {
-                var timeSinceRecovery = DateTime.UtcNow - _lastRecoveryTime;
+                TimeSpan timeSinceRecovery = DateTime.UtcNow - _lastRecoveryTime;
                 if (timeSinceRecovery.TotalMilliseconds > POST_RECOVERY_VERIFY_MS)
                 {
                     // Il recovery è stato fatto ma non sono arrivati nuovi messaggi
@@ -495,7 +499,7 @@ namespace Infrastructure
             if (timeSinceLastRx.TotalMilliseconds > NO_TRAFFIC_WARNING_MS && !_noTrafficWarningLogged)
             {
                 _noTrafficWarningLogged = true;
-                var busStatus = _api.GetStatus(_channel);
+                PcanStatus busStatus = _api.GetStatus(_channel);
                 _logger.LogWarning(
                     "PCAN: NO TRAFFIC for {Seconds:F1} seconds! BusStatus={BusStatus}, TotalRX={TotalRx}, ConsecEmpty={ConsecEmpty}",
                     timeSinceLastRx.TotalSeconds, busStatus, _totalRxCount, consecutiveEmptyReads);
@@ -504,7 +508,7 @@ namespace Infrastructure
             // Recovery automatico se non riceviamo messaggi per troppo tempo
             if (timeSinceLastRx.TotalMilliseconds > NO_TRAFFIC_RECOVERY_MS && !_recoveryVerificationPending)
             {
-                var busStatus = _api.GetStatus(_channel);
+                PcanStatus busStatus = _api.GetStatus(_channel);
                 _logger.LogError(
                     "PCAN: NO TRAFFIC TIMEOUT ({Seconds:F1}s), forcing recovery. BusStatus={BusStatus}",
                     timeSinceLastRx.TotalSeconds, busStatus);
@@ -547,7 +551,9 @@ namespace Infrastructure
         {
             // Don't attempt recovery if disposing
             if (_isDisposed)
+            {
                 return false;
+            }
 
             lock (_recoveryLock)
             {
@@ -574,7 +580,7 @@ namespace Infrastructure
                 }
 
                 // Log stato dettagliato prima del recovery
-                var preStatus = _api.GetStatus(_channel);
+                PcanStatus preStatus = _api.GetStatus(_channel);
                 _logger.LogWarning(
                     "PCAN: Starting recovery (attempt {Attempt}/{Max}). PreStatus={PreStatus}, TotalRecoveries={Total}",
                     _recoveryAttempts, MAX_RECOVERY_ATTEMPTS, preStatus, _totalRecoveryAttempts);
@@ -607,12 +613,17 @@ namespace Infrastructure
         private async Task<bool> TryAggressiveRecoveryAsync()
         {
             if (_isDisposed)
+            {
                 return false;
+            }
 
             lock (_recoveryLock)
             {
                 if (_isRecovering)
+                {
                     return false;
+                }
+
                 _isRecovering = true;
             }
 
@@ -629,15 +640,21 @@ namespace Infrastructure
                     _api.Uninitialize(_channel);
                     await Task.Delay(250).ConfigureAwait(false);  // Ridotto da 500 a 250
 
-                    if (_isDisposed) return false;
+                    if (_isDisposed)
+                    {
+                        return false;
+                    }
                 }
 
                 // Attesa più lunga prima della re-inizializzazione finale
                 await Task.Delay(500).ConfigureAwait(false);  // Ridotto da 1000 a 500
 
-                if (_isDisposed) return false;
+                if (_isDisposed)
+                {
+                    return false;
+                }
 
-                var success = await PerformFullReconnectAsync().ConfigureAwait(false);
+                bool success = await PerformFullReconnectAsync().ConfigureAwait(false);
 
                 if (success)
                 {
@@ -667,26 +684,29 @@ namespace Infrastructure
         {
             _logger.LogDebug("PCAN: Performing full reconnect");
 
-            var uninitStatus = _api.Uninitialize(_channel);
+            PcanStatus uninitStatus = _api.Uninitialize(_channel);
             _logger.LogDebug("PCAN: Uninitialize returned: {Status}", uninitStatus);
 
             await Task.Delay(RECOVERY_DELAY_MS).ConfigureAwait(false);
 
-            if (_isDisposed) return false;
-
-            if (_lastConfig != null && TryParseConfig(_lastConfig, out var baudRate))
+            if (_isDisposed)
             {
-                var initStatus = _api.Initialize(_channel, baudRate);
+                return false;
+            }
+
+            if (_lastConfig != null && TryParseConfig(_lastConfig, out Bitrate baudRate))
+            {
+                PcanStatus initStatus = _api.Initialize(_channel, baudRate);
                 _logger.LogDebug("PCAN: Re-initialize returned: {Status}", initStatus);
 
                 if (initStatus == PcanStatus.OK)
                 {
-                    var resetStatus = _api.Reset(_channel);
+                    PcanStatus resetStatus = _api.Reset(_channel);
                     _logger.LogDebug("PCAN: Reset returned: {Status}", resetStatus);
 
                     await Task.Delay(200).ConfigureAwait(false);
 
-                    var finalStatus = _api.GetStatus(_channel);
+                    PcanStatus finalStatus = _api.GetStatus(_channel);
                     _logger.LogDebug("PCAN: Final status after full reconnect: {Status}", finalStatus);
 
                     if (finalStatus == PcanStatus.OK || finalStatus == PcanStatus.ReceiveQueueEmpty)
@@ -722,9 +742,9 @@ namespace Infrastructure
         /// </summary>
         public string GetDiagnostics()
         {
-            var timeSinceLastRx = DateTime.UtcNow - _lastMessageTime;
-            var uptime = IsConnected ? DateTime.UtcNow - _connectionStartTime : TimeSpan.Zero;
-            var busStatus = IsConnected ? _api.GetStatus(_channel) : PcanStatus.Unknown;
+            TimeSpan timeSinceLastRx = DateTime.UtcNow - _lastMessageTime;
+            TimeSpan uptime = IsConnected ? DateTime.UtcNow - _connectionStartTime : TimeSpan.Zero;
+            PcanStatus busStatus = IsConnected ? _api.GetStatus(_channel) : PcanStatus.Unknown;
 
             return $"PCAN Diagnostics:\n" +
                    $"  Connected: {IsConnected}\n" +
@@ -749,13 +769,15 @@ namespace Infrastructure
         {
             baudRate = Bitrate.Pcan250;
 
-            if (string.IsNullOrWhiteSpace(config) || !int.TryParse(config.Trim(), out var value))
+            if (string.IsNullOrWhiteSpace(config) || !int.TryParse(config.Trim(), out int value))
             {
                 return false;
             }
 
             if (value <= 1000)
+            {
                 value *= 1000;
+            }
 
             baudRate = value switch
             {
@@ -777,7 +799,9 @@ namespace Infrastructure
         public async ValueTask DisposeAsync()
         {
             if (_isDisposed)
+            {
                 return;
+            }
 
             _isDisposed = true;
             _logger.LogDebug("PCAN: DisposeAsync called");
@@ -785,7 +809,7 @@ namespace Infrastructure
             await DisconnectAsync().ConfigureAwait(false);
 
             // Final cleanup - atomically get and dispose any remaining CTS
-            var cts = Interlocked.Exchange(ref _cts, null);
+            CancellationTokenSource? cts = Interlocked.Exchange(ref _cts, null);
             cts?.Dispose();
         }
     }

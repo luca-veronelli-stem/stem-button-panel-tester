@@ -1,7 +1,7 @@
-﻿using ClosedXML.Excel;
+using System.Collections.Immutable;
+using ClosedXML.Excel;
 using Core.Interfaces.Data;
 using Core.Models.Data;
-using System.Collections.Immutable;
 
 namespace Data
 {
@@ -57,15 +57,23 @@ namespace Data
 
         public async Task<StemProtocolData> GetProtocolDataFromFileAsync(string filePath)
         {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
-            using var fileStream = File.OpenRead(filePath);
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
+            }
+
+            using FileStream fileStream = File.OpenRead(filePath);
             return await GetProtocolDataAsync(fileStream);
         }
 
         public async Task<StemProtocolData> GetDictionaryFromFileAsync(string filePath, uint recipientId)
         {
-            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
-            using var fileStream = File.OpenRead(filePath);
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
+            }
+
+            using FileStream fileStream = File.OpenRead(filePath);
             return await GetDictionaryAsync(fileStream, recipientId);
         }
 
@@ -84,11 +92,11 @@ namespace Data
             }
 
             // Salta header e itera nelle righe sottostanti
-            foreach (var row in worksheet.RowsUsed().Skip(1))
+            foreach (IXLRow? row in worksheet.RowsUsed().Skip(1))
             {
-                var machine = row.Cell("A").GetValue<string>();
-                var board = row.Cell("C").GetValue<string>();
-                var address = row.Cell("G").GetValue<string>();
+                string machine = row.Cell("A").GetValue<string>();
+                string board = row.Cell("C").GetValue<string>();
+                string address = row.Cell("G").GetValue<string>();
 
                 if (!string.IsNullOrWhiteSpace(machine) && !string.IsNullOrWhiteSpace(board) && !string.IsNullOrWhiteSpace(address))
                 {
@@ -112,11 +120,11 @@ namespace Data
             }
 
             // Salta header e itera nelle righe sottostanti
-            foreach (var row in worksheet.RowsUsed().Skip(1))
+            foreach (IXLRow? row in worksheet.RowsUsed().Skip(1))
             {
-                var name = row.Cell(1).GetValue<string>();
-                var cmdH = row.Cell(2).GetValue<string>();
-                var cmdL = row.Cell(3).GetValue<string>();
+                string name = row.Cell(1).GetValue<string>();
+                string cmdH = row.Cell(2).GetValue<string>();
+                string cmdL = row.Cell(3).GetValue<string>();
 
                 if (!string.IsNullOrWhiteSpace(name))
                 {
@@ -128,14 +136,18 @@ namespace Data
         // Helper: estrai variabili dal workbook
         private static IEnumerable<StemVariableData> ExtractVariables(XLWorkbook workbook, uint recipientId)
         {
-            foreach (var worksheet in workbook.Worksheets)
+            foreach (IXLWorksheet worksheet in workbook.Worksheets)
             {
                 // Controlla che ci sia il recipientId
                 bool idMatched = false;
-                foreach (var cell in worksheet.Row(2).CellsUsed())
+                foreach (IXLCell? cell in worksheet.Row(2).CellsUsed())
                 {
-                    var cellStr = cell.GetString();
-                    if (cellStr.Length <= 2) continue;
+                    string cellStr = cell.GetString();
+                    if (cellStr.Length <= 2)
+                    {
+                        continue;
+                    }
+
                     if (int.TryParse(cellStr.AsSpan(2), System.Globalization.NumberStyles.HexNumber, null, out int cellValue) && (uint)cellValue == recipientId)
                     {
                         idMatched = true;
@@ -144,18 +156,21 @@ namespace Data
                 }
 
                 // Salta il foglio se non c'è
-                if (!idMatched) continue;
+                if (!idMatched)
+                {
+                    continue;
+                }
 
                 // Salta header e itera nelle righe sottostanti
-                foreach (var row in worksheet.RowsUsed().Skip(4))
+                foreach (IXLRow? row in worksheet.RowsUsed().Skip(4))
                 {
-                    var fillColor = row.Cell("A").Style.Fill.BackgroundColor;
+                    XLColor fillColor = row.Cell("A").Style.Fill.BackgroundColor;
                     if (fillColor.ColorType != XLColorType.Theme && fillColor.Color.ToArgb() == -7155632)
                     {
-                        var name = row.Cell("A").GetValue<string>();
-                        var addrH = row.Cell("B").GetValue<string>();
-                        var addrL = row.Cell("C").GetValue<string>();
-                        var dataType = row.Cell("D").GetValue<string>();
+                        string name = row.Cell("A").GetValue<string>();
+                        string addrH = row.Cell("B").GetValue<string>();
+                        string addrL = row.Cell("C").GetValue<string>();
+                        string dataType = row.Cell("D").GetValue<string>();
 
                         if (!string.IsNullOrWhiteSpace(name) && !string.IsNullOrWhiteSpace(addrH) && !string.IsNullOrWhiteSpace(addrL) && !string.IsNullOrWhiteSpace(dataType))
                         {

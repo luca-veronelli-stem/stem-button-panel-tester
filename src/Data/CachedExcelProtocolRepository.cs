@@ -1,7 +1,8 @@
-using Core.Interfaces.Data;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Globalization;
+using Core.Interfaces.Data;
+using Core.Models.Data;
 
 namespace Data
 {
@@ -48,11 +49,15 @@ namespace Data
         public ushort GetCommand(string commandName)
         {
             if (string.IsNullOrWhiteSpace(commandName))
+            {
                 throw new ArgumentException("Command name cannot be null or empty.", nameof(commandName));
+            }
 
-            var commands = GetCommandsSync();
-            if (commands.TryGetValue(commandName, out var value))
+            ImmutableDictionary<string, ushort> commands = GetCommandsSync();
+            if (commands.TryGetValue(commandName, out ushort value))
+            {
                 return value;
+            }
 
             throw new KeyNotFoundException($"Command '{commandName}' not found in Excel.");
         }
@@ -60,11 +65,15 @@ namespace Data
         public ushort GetVariable(string variableName)
         {
             if (string.IsNullOrWhiteSpace(variableName))
+            {
                 throw new ArgumentException("Variable name cannot be null or empty.", nameof(variableName));
+            }
 
-            var variables = GetVariablesSync();
-            if (variables.TryGetValue(variableName, out var value))
+            ImmutableDictionary<string, ushort> variables = GetVariablesSync();
+            if (variables.TryGetValue(variableName, out ushort value))
+            {
                 return value;
+            }
 
             throw new KeyNotFoundException($"Variable '{variableName}' not found in Excel.");
         }
@@ -72,10 +81,14 @@ namespace Data
         public byte[] GetValue(string valueName)
         {
             if (string.IsNullOrWhiteSpace(valueName))
+            {
                 throw new ArgumentException("Value name cannot be null or empty.", nameof(valueName));
+            }
 
-            if (_values.TryGetValue(valueName, out var value))
+            if (_values.TryGetValue(valueName, out byte[]? value))
+            {
                 return value;
+            }
 
             throw new KeyNotFoundException($"Value '{valueName}' not found.");
         }
@@ -107,8 +120,10 @@ namespace Data
         private ImmutableDictionary<string, ushort> GetCommandsSync()
         {
             // Check cache first (no lock needed for read)
-            if (_commandsCache.TryGetValue(_excelFilePath, out var cached))
+            if (_commandsCache.TryGetValue(_excelFilePath, out ImmutableDictionary<string, ushort>? cached))
+            {
                 return cached;
+            }
 
             // Use semaphore for async-compatible locking
             _commandsLock.Wait();
@@ -116,10 +131,12 @@ namespace Data
             {
                 // Double-check after acquiring lock
                 if (_commandsCache.TryGetValue(_excelFilePath, out cached))
+                {
                     return cached;
+                }
 
                 // Load and cache
-                var commands = Task.Run(() => LoadCommandsAsync()).GetAwaiter().GetResult();
+                ImmutableDictionary<string, ushort> commands = Task.Run(() => LoadCommandsAsync()).GetAwaiter().GetResult();
                 _commandsCache[_excelFilePath] = commands;
                 return commands;
             }
@@ -132,8 +149,10 @@ namespace Data
         private ImmutableDictionary<string, ushort> GetVariablesSync()
         {
             // Check cache first (no lock needed for read)
-            if (_variablesCache.TryGetValue(_recipientId, out var cached))
+            if (_variablesCache.TryGetValue(_recipientId, out ImmutableDictionary<string, ushort>? cached))
+            {
                 return cached;
+            }
 
             // Use semaphore for async-compatible locking
             _variablesLock.Wait();
@@ -141,10 +160,12 @@ namespace Data
             {
                 // Double-check after acquiring lock
                 if (_variablesCache.TryGetValue(_recipientId, out cached))
+                {
                     return cached;
+                }
 
                 // Load and cache
-                var variables = Task.Run(() => LoadVariablesAsync()).GetAwaiter().GetResult();
+                ImmutableDictionary<string, ushort> variables = Task.Run(() => LoadVariablesAsync()).GetAwaiter().GetResult();
                 _variablesCache[_recipientId] = variables;
                 return variables;
             }
@@ -158,7 +179,7 @@ namespace Data
         {
             try
             {
-                var protocolData = await _excelRepository.GetProtocolDataFromFileAsync(_excelFilePath).ConfigureAwait(false);
+                StemProtocolData protocolData = await _excelRepository.GetProtocolDataFromFileAsync(_excelFilePath).ConfigureAwait(false);
 
                 return protocolData.Commands.ToImmutableDictionary(
                     cmd => cmd.Name,
@@ -179,7 +200,7 @@ namespace Data
         {
             try
             {
-                var protocolData = await _excelRepository.GetDictionaryFromFileAsync(_excelFilePath, _recipientId).ConfigureAwait(false);
+                StemProtocolData protocolData = await _excelRepository.GetDictionaryFromFileAsync(_excelFilePath, _recipientId).ConfigureAwait(false);
 
                 return protocolData.Variables.ToImmutableDictionary(
                     var => var.Name,

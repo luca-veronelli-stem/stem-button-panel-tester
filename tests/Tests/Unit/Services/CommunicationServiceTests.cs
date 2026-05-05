@@ -1,4 +1,5 @@
-﻿using Core.Enums;
+using System.Reflection;
+using Core.Enums;
 using Core.Interfaces.Communication;
 using Core.Models;
 using Core.Models.Communication;
@@ -31,8 +32,8 @@ namespace Tests.Unit.Services
         public async Task SetActiveChannelAsync_SameChannelAndConnected_DoesNothing()
         {
             // Arrange
-            var channel = CommunicationChannel.Can;
-            var config = "test-config";
+            CommunicationChannel channel = CommunicationChannel.Can;
+            string config = "test-config";
             var managerMock = new Mock<ICommunicationManager>();
             managerMock.Setup(m => m.IsConnected).Returns(true);
             managerMock.Setup(m => m.ConnectAsync(config, It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -43,7 +44,7 @@ namespace Tests.Unit.Services
             await _service.SetActiveChannelAsync(channel, config);
 
             // Act: Seconda chiamata con lo stesso canale
-            var result = await _service.SetActiveChannelAsync(channel, config);
+            Result result = await _service.SetActiveChannelAsync(channel, config);
 
             // Assert: Verifica che non siano state effettuate ulteriori connessioni o disconnessioni
             Assert.True(result.IsSuccess);
@@ -57,9 +58,9 @@ namespace Tests.Unit.Services
         public async Task SetActiveChannelAsync_NewChannel_DisconnectsOldAndConnectsNew()
         {
             // Arrange: Configura due canali diversi per simulare un cambio.
-            var oldChannel = CommunicationChannel.Ble;
-            var newChannel = CommunicationChannel.Can;
-            var config = "test-config";
+            CommunicationChannel oldChannel = CommunicationChannel.Ble;
+            CommunicationChannel newChannel = CommunicationChannel.Can;
+            string config = "test-config";
 
             // Mock per il vecchio manager: già connesso, si connette con successo, si disconnette correttamente.
             var oldManagerMock = new Mock<ICommunicationManager>();
@@ -78,7 +79,7 @@ namespace Tests.Unit.Services
 
             // Act: Imposta prima il vecchio canale, poi il nuovo.
             await _service.SetActiveChannelAsync(oldChannel, config);
-            var result = await _service.SetActiveChannelAsync(newChannel, config);
+            Result result = await _service.SetActiveChannelAsync(newChannel, config);
 
             // Assert: Verifica che il vecchio sia stato disconnesso e il nuovo connesso.
             Assert.True(result.IsSuccess);
@@ -92,15 +93,15 @@ namespace Tests.Unit.Services
         public async Task SetActiveChannelAsync_ConnectionFails_ReturnsFailure()
         {
             // Arrange
-            var channel = CommunicationChannel.Can;
-            var config = "test-config";
+            CommunicationChannel channel = CommunicationChannel.Can;
+            string config = "test-config";
             var managerMock = new Mock<ICommunicationManager>();
             managerMock.Setup(m => m.ConnectAsync(config, It.IsAny<CancellationToken>())).ReturnsAsync(false);
 
             _managerFactoryMock.Setup(f => f.Create(channel)).Returns(managerMock.Object);
 
             // Act
-            var result = await _service.SetActiveChannelAsync(channel, config);
+            Result result = await _service.SetActiveChannelAsync(channel, config);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -113,8 +114,8 @@ namespace Tests.Unit.Services
         public async Task SetActiveChannelAsync_WithCancellationToken_ReturnsCancelledResult()
         {
             // Arrange
-            var channel = CommunicationChannel.Can;
-            var config = "test-config";
+            CommunicationChannel channel = CommunicationChannel.Can;
+            string config = "test-config";
             var managerMock = new Mock<ICommunicationManager>();
 
             // Simula una connessione che richiede tempo
@@ -126,12 +127,12 @@ namespace Tests.Unit.Services
             var cts = new CancellationTokenSource();
 
             // Act
-            var setTask = _service.SetActiveChannelAsync(channel, config, cts.Token);
+            Task<Result> setTask = _service.SetActiveChannelAsync(channel, config, cts.Token);
             await Task.Delay(100);
             cts.Cancel();
 
             // Assert
-            var result = await setTask;
+            Result result = await setTask;
             Assert.True(result.IsFailure);
             Assert.Equal(ErrorCodes.Cancelled, result.Error.Code);
         }
@@ -141,7 +142,7 @@ namespace Tests.Unit.Services
         public async Task SetActiveChannelAsync_NullConfig_HandlesGracefully()
         {
             // Arrange
-            var channel = CommunicationChannel.Can;
+            CommunicationChannel channel = CommunicationChannel.Can;
             string? config = null;
             var managerMock = new Mock<ICommunicationManager>();
             managerMock.Setup(m => m.ConnectAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync(true);
@@ -149,7 +150,7 @@ namespace Tests.Unit.Services
             _managerFactoryMock.Setup(f => f.Create(channel)).Returns(managerMock.Object);
 
             // Act
-            var result = await _service.SetActiveChannelAsync(channel, config!);
+            Result result = await _service.SetActiveChannelAsync(channel, config!);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -165,7 +166,7 @@ namespace Tests.Unit.Services
             byte[] payload = new byte[] { 1, 2 };
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, false);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, false);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -179,7 +180,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -190,7 +191,7 @@ namespace Tests.Unit.Services
             managerMock.Setup(m => m.SendAsync(It.IsAny<byte[]>(), It.IsAny<uint?>())).ReturnsAsync(true);
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, false);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, false);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -206,7 +207,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -223,12 +224,12 @@ namespace Tests.Unit.Services
             _protocolManagerMock.SetupAdd(e => e.CommandDecoded += It.IsAny<EventHandler<AppLayerDecoderEventArgs>>());
 
             // Act
-            var sendTask = _service.SendCommandAsync(command, payload, true, validator, 1000);
+            Task<Result<byte[]>> sendTask = _service.SendCommandAsync(command, payload, true, validator, 1000);
 
             // Simula la ricezione della risposta
             _protocolManagerMock.Raise(e => e.CommandDecoded += null, new AppLayerDecoderEventArgs(responsePayload));
 
-            var result = await sendTask;
+            Result<byte[]> result = await sendTask;
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -243,7 +244,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -256,7 +257,7 @@ namespace Tests.Unit.Services
                 .ReturnsAsync(false);
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, false);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, false);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -270,7 +271,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -281,7 +282,7 @@ namespace Tests.Unit.Services
             managerMock.Setup(m => m.SendAsync(It.IsAny<byte[]>(), It.IsAny<uint?>())).ReturnsAsync(true);
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, true, null, 100);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, true, null, 100);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -295,7 +296,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -309,12 +310,12 @@ namespace Tests.Unit.Services
             static bool validator(byte[] p) => false;
 
             // Act
-            var sendTask = _service.SendCommandAsync(command, payload, true, validator, 100);
+            Task<Result<byte[]>> sendTask = _service.SendCommandAsync(command, payload, true, validator, 100);
 
             // Simula la ricezione di una risposta non valida
             _protocolManagerMock.Raise(e => e.CommandDecoded += null, new AppLayerDecoderEventArgs(invalidResponse));
 
-            var result = await sendTask;
+            Result<byte[]> result = await sendTask;
 
             // Assert: Timeout poiché la risposta valida non è mai arrivata
             Assert.True(result.IsFailure);
@@ -328,7 +329,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -342,7 +343,7 @@ namespace Tests.Unit.Services
             cts.CancelAfter(50);
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, true, null, 1000, cts.Token);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, true, null, 1000, cts.Token);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -356,7 +357,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -367,7 +368,7 @@ namespace Tests.Unit.Services
             managerMock.Setup(m => m.SendAsync(It.IsAny<byte[]>(), It.IsAny<uint?>())).ReturnsAsync(true);
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, false);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, false);
 
             // Assert
             Assert.True(result.IsSuccess);
@@ -382,7 +383,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
 
             ushort command = 0x0001;
@@ -394,7 +395,7 @@ namespace Tests.Unit.Services
             _service.ErrorOccurred += (_, _) => eventRaised = true;
 
             // Act
-            var result = await _service.SendCommandAsync(command, payload, false);
+            Result<byte[]> result = await _service.SendCommandAsync(command, payload, false);
 
             // Assert
             Assert.True(result.IsFailure);
@@ -409,7 +410,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             byte[] data = new byte[] { 1, 2, 3 };
             _protocolManagerMock.Setup(p => p.ProcessReceivedPacket(data)).Returns(Array.Empty<byte>());
 
@@ -446,7 +447,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
 
             // Act: Sollevare l'evento con la firma corretta
             managerMock.Raise(m => m.ConnectionStatusChanged += null, (object)managerMock.Object, true);
@@ -469,7 +470,7 @@ namespace Tests.Unit.Services
             // Arrange
             await SetupActiveChannelAsync();
 
-            var managerMock = GetCurrentManagerMock();
+            Mock<ICommunicationManager> managerMock = GetCurrentManagerMock();
             managerMock.Setup(m => m.MaxPacketSize).Returns(8);
             managerMock.Setup(m => m.SendAsync(It.IsAny<byte[]>(), It.IsAny<uint?>())).ReturnsAsync(true);
 
@@ -481,7 +482,7 @@ namespace Tests.Unit.Services
                 .Select(_ => _service.SendCommandAsync(0x0001, new byte[] { 1 }, false))
                 .ToList();
 
-            var results = await Task.WhenAll(tasks);
+            Result<byte[]>[] results = await Task.WhenAll(tasks);
 
             // Assert: Tutti gli invii sono stati completati con successo
             Assert.All(results, r => Assert.True(r.IsSuccess));
@@ -503,7 +504,7 @@ namespace Tests.Unit.Services
         // Helper per ottenere il mock del manager corrente
         private Mock<ICommunicationManager> GetCurrentManagerMock()
         {
-            var field = typeof(CommunicationService).GetField("_currentManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            FieldInfo? field = typeof(CommunicationService).GetField("_currentManager", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
             var manager = (ICommunicationManager)field!.GetValue(_service)!;
             return Mock.Get(manager);
         }

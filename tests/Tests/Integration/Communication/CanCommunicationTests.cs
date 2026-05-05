@@ -1,4 +1,4 @@
-﻿using Communication;
+using Communication;
 using Infrastructure;
 using Infrastructure.Lib;
 
