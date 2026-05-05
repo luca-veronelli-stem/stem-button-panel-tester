@@ -52,7 +52,7 @@
     <!-- Driver-only (Windows TFM, see PORTABILITY Pattern A) -->
     <PackageVersion Include="System.IO.Ports" Version="10.0.1" />
     <PackageVersion Include="InTheHand.Net.Bluetooth" Version="4.2.21" />
-    <PackageVersion Include="Peak.PCANBasic.NET" Version="4.10.1.968" />
+    <PackageVersion Include="Peak.PCANBasic.NET" Version="5.0.1.1131" />
   </ItemGroup>
 
 </Project>
