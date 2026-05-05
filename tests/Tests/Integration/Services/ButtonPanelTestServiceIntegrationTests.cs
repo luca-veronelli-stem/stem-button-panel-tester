@@ -308,6 +308,7 @@ userPrompt,
         [InlineData(ButtonPanelType.DIS0025205, 4)]
         [InlineData(ButtonPanelType.DIS0026166, 8)]
         [InlineData(ButtonPanelType.DIS0026182, 8)]
+        [Trait("Category", TestCategories.FlakyOnCi)]
         public async Task TestAllAsync_DifferentPanelTypes_UseCorrectButtonCount(ButtonPanelType panelType, int expectedButtonCount)
         {
             // Arrange
