@@ -34,4 +34,10 @@ public static class TestCategories
     /// Esclusi da CI Linux.
     /// </summary>
     public const string RequiresWindows = "RequiresWindows";
+
+    /// <summary>
+    /// Test che falliscono in modo intermittente su CI (timing-sensitive sotto carico).
+    /// Esclusi da CI; passano localmente. Tracked in issue #3.
+    /// </summary>
+    public const string FlakyOnCi = "FlakyOnCi";
 }

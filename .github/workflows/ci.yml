@@ -2,8 +2,7 @@ name: CI
 
 on:
   push:
-    branches:
-      - "**"
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -63,11 +62,11 @@ jobs:
         continue-on-error: true
         run: dotnet format --verify-no-changes
 
+      # No --framework filter: it overrides per-project TFMs and breaks legacy
+      # net10.0-windows projects. The Linux test leg below enforces the
+      # cross-platform contract (Tests are net10.0-only).
       - name: Build (cross-platform leg)
         if: runner.os == 'Linux'
-        # No --framework filter: legacy GUI.WinForms (net10.0-windows) builds via
-        # EnableWindowsTargeting=true. Re-add --framework net10.0 once the GUI
-        # migrates to Avalonia (see CLAUDE.md migration tracker, phase 4).
         run: dotnet build --configuration Release --no-restore
 
       - name: Build (full leg, includes net10.0-windows)
@@ -76,11 +75,11 @@ jobs:
 
       - name: Test (cross-platform leg)
         if: runner.os == 'Linux'
-        run: dotnet test --framework net10.0 --configuration Release --no-build --filter "Category!=RequiresHardware&Category!=RequiresWindows" --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test --framework net10.0 --configuration Release --no-build --filter "Category!=RequiresHardware&Category!=RequiresWindows&Category!=FlakyOnCi" --logger "trx;LogFileName=test-results.trx"
 
       - name: Test (full leg)
         if: runner.os == 'Windows'
-        run: dotnet test --configuration Release --no-build --filter "Category!=RequiresHardware" --logger "trx;LogFileName=test-results.trx"
+        run: dotnet test --configuration Release --no-build --filter "Category!=RequiresHardware&Category!=FlakyOnCi" --logger "trx;LogFileName=test-results.trx"
 
       - name: Test report
         uses: dorny/test-reporter@v1

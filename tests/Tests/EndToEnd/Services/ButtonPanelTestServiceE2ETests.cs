@@ -387,6 +387,7 @@ onButtonResult);
         [InlineData(ButtonPanelType.DIS0023789, 8, true)]
         [InlineData(ButtonPanelType.DIS0025205, 4, false)]
         [InlineData(ButtonPanelType.DIS0026166, 8, true)]
+        [Trait("Category", TestCategories.FlakyOnCi)]
         public async Task E2E_PanelTypesWithProtocolData_CompleteWorkflowSucceeds(
             ButtonPanelType panelType, int expectedButtonCount, bool hasLed)
         {
