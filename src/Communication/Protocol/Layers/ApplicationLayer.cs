@@ -1,4 +1,4 @@
-﻿using Communication.Protocol.Lib;
+using Communication.Protocol.Lib;
 
 namespace Communication.Protocol.Layers
 {
@@ -37,13 +37,13 @@ namespace Communication.Protocol.Layers
         public byte[] ApplicationPacket { get; }
 
         /// <summary>
-        /// Comando completo a 16 bit (cmdInit << 8 | cmdOpt).
+        /// Comando completo a 16 bit (<c>cmdInit &lt;&lt; 8 | cmdOpt</c>).
         /// </summary>
         public ushort Command => (ushort)((CmdInit << 8) | CmdOpt);
 
         /// <summary>
         /// Costruttore privato per inizializzazione controllata.
-        /// Utilizzare i metodi factory <see cref="Create"/> o <see cref="Parse"/>.
+        /// Utilizzare i metodi factory <c>Create</c> o <see cref="Parse(byte[])"/>.
         /// </summary>
         private ApplicationLayer(byte cmdInit, byte cmdOpt, byte[] payload, byte[] applicationPacket)
             : base(payload)

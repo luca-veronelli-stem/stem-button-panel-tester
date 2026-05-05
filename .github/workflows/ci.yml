@@ -57,9 +57,6 @@ jobs:
         run: dotnet restore
 
       - name: Verify formatting
-        # TRANSITIONAL: existing C# code predates the v1.1.0 .editorconfig.
-        # Step runs (visible in logs) but does not block while the cleanup PR is pending.
-        continue-on-error: true
         run: dotnet format --verify-no-changes
 
       # No --framework filter: it overrides per-project TFMs and breaks legacy

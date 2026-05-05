@@ -1,4 +1,4 @@
-﻿using Communication.Protocol.Lib;
+using Communication.Protocol.Lib;
 using Core.Enums;
 
 namespace Communication.Protocol.Layers
@@ -66,7 +66,7 @@ namespace Communication.Protocol.Layers
 
         /// <summary>
         /// Costruttore privato per inizializzazione controllata.
-        /// Utilizzare i metodi factory <see cref="Create"/> o <see cref="Parse"/>.
+        /// Utilizzare i metodi factory <c>Create</c> o <see cref="Parse(byte[])"/>.
         /// </summary>
         private TransportLayer(
             CryptType cryptFlag,
@@ -208,7 +208,7 @@ namespace Communication.Protocol.Layers
                 ProtocolConfig.CrcLength).ToArray();
 
             // Validazione CRC (big-endian per RX)
-            var (isValid, validationError) = ValidateCrc(transportPacket, lPack, crc);
+            (bool isValid, string? validationError) = ValidateCrc(transportPacket, lPack, crc);
 
             return new TransportLayer(
                 cryptFlag,
