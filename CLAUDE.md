@@ -1,9 +1,9 @@
 # CLAUDE.md — ButtonPanelTester
 
 **Archetype:** A
-**Standard version:** v1.1.0
+**Standard version:** v1.1.1
 
-This repo follows the STEM v1 standards documented in [`docs/Standards/`](./docs/Standards/) (inline copies pinned to the version above). Upstream source of truth lives in [`llm-settings`](https://github.com/luca-veronelli-stem/llm-settings/tree/v1.1.0/shared/standards) (private).
+This repo follows the STEM v1 standards documented in [`docs/Standards/`](./docs/Standards/) (inline copies pinned to the version above). Upstream source of truth lives in [`llm-settings`](https://github.com/luca-veronelli-stem/llm-settings/tree/v1.1.1/shared/standards) (private).
 
 ## Repo-specific notes
 
@@ -25,7 +25,7 @@ Examples:
 
 (Track which phases of the MIGRATION standard are in flight for this repo.)
 
-- [x] Structural adoption — PR #N — landed YYYY-MM-DD.
+- [x] Structural adoption — PR #1 — landed 2026-05-05.
 - [ ] Phase 2: F# migration of `<App>.Core` — issue #M — target YYYY-Q.
 - [ ] Phase 3: F# migration of `<App>.Services` — issue #M.
 - [ ] Phase 4: Avalonia migration of `<App>.GUI.Windows` → `<App>.GUI` — issue #M.
