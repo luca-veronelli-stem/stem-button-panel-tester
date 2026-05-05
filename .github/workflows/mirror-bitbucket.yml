@@ -1,0 +1,36 @@
+name: Mirror to Bitbucket
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: mirror-bitbucket-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  mirror:
+    name: Push main to Bitbucket
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Configure SSH for Bitbucket
+        env:
+          BITBUCKET_SSH_KEY: ${{ secrets.BITBUCKET_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$BITBUCKET_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -t rsa,ed25519 bitbucket.org >> ~/.ssh/known_hosts
+
+      - name: Fast-forward bitbucket/main
+        run: |
+          git remote add bitbucket git@bitbucket.org:stem-fw/stem-button-panel-tester.git
+          git push bitbucket HEAD:refs/heads/main

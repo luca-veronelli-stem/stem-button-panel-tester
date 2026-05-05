@@ -1,40 +1,26 @@
 <Solution>
-  <Folder Name="/.copilot/">
-    <File Path=".copilot/copilot-instructions.md" />
-    <File Path=".copilot/sample-instructions.md" />
-  </Folder>
-  <Folder Name="/.copilot/agents/">
-    <File Path=".copilot/agents/coding-agent.md" />
-    <File Path=".copilot/agents/docs-agent.md" />
-    <File Path=".copilot/agents/formal-spec-agent.md" />
-    <File Path=".copilot/agents/issues-agent.md" />
-    <File Path=".copilot/agents/test-agent.md" />
-  </Folder>
-  <Folder Name="/Docs/">
-    <File Path="Docs/BUTTONPANEL_TESTER.md" />
-  </Folder>
-  <Folder Name="/Docs/Standards/">
-    <File Path="Docs/Standards/TEMPLATE_STANDARD.md" />
-  </Folder>
-  <Folder Name="/Docs/Standards/Templates/">
-    <File Path="Docs/Standards/Templates/ISSUES_TEMPLATE.md" />
-    <File Path="Docs/Standards/Templates/README_TEMPLATE.md" />
-    <File Path="Docs/Standards/Templates/STANDARD_TEMPLATE.md" />
+  <Folder Name="/docs/">
+    <File Path="docs/BUTTONPANEL_TESTER.md" />
   </Folder>
   <Folder Name="/Solution Items/">
+    <File Path=".editorconfig" />
     <File Path=".gitattributes" />
     <File Path=".gitignore" />
     <File Path="bitbucket-pipelines.yml" />
+    <File Path="CHANGELOG.md" />
+    <File Path="CLAUDE.md" />
+    <File Path="Directory.Build.props" />
+    <File Path="Directory.Packages.props" />
+    <File Path="global.json" />
     <File Path="ISSUES_TRACKER.md" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
-  <Project Path="Communication/Communication.csproj" />
-  <Project Path="Core/Core.csproj" />
-  <Project Path="Data/Data.csproj" />
-  <Project Path="GUI.Windows/GUI.Windows.csproj" Id="adae81a9-8a04-45ef-aa9f-46bac82c4a7f" />
-  <Project Path="GUI.WinForms/GUI.WinForms.csproj" />
-  <Project Path="Infrastructure/Infrastructure.csproj" />
-  <Project Path="Services/Services.csproj" />
-  <Project Path="Tests/Tests.csproj" />
+  <Project Path="src/Communication/Communication.csproj" />
+  <Project Path="src/Core/Core.csproj" />
+  <Project Path="src/Data/Data.csproj" />
+  <Project Path="src/GUI.WinForms/GUI.WinForms.csproj" />
+  <Project Path="src/Infrastructure/Infrastructure.csproj" />
+  <Project Path="src/Services/Services.csproj" />
+  <Project Path="tests/Tests/Tests.csproj" />
 </Solution>
