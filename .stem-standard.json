@@ -1,0 +1,11 @@
+{
+  "app": "ButtonPanelTester",
+  "repo": "stem-button-panel-tester",
+  "archetype": "A",
+  "owner": "luca-veronelli-stem",
+  "lucaUser": "luca-veronelli-stem",
+  "standardVersion": "v1.1.0",
+  "author": "Luca Veronelli",
+  "description": "Bench tool for testing STEM button-panel hardware over CAN.",
+  "year": "2026"
+}

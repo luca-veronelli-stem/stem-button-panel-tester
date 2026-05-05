@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - "**"
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    # Weekly Monday 06:00 UTC — catches dependency drift on idle repos.
+    - cron: '0 6 * * 1'
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+jobs:
+  build:
+    name: build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/Directory.Packages.props') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      - name: Cache Lean toolchain
+        if: hashFiles('lean-toolchain') != ''
+        uses: actions/cache@v4
+        with:
+          path: ~/.elan
+          key: ${{ runner.os }}-elan-${{ hashFiles('lean-toolchain') }}
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Verify formatting
+        # TRANSITIONAL: existing C# code predates the v1.1.0 .editorconfig.
+        # Step runs (visible in logs) but does not block while the cleanup PR is pending.
+        continue-on-error: true
+        run: dotnet format --verify-no-changes
+
+      - name: Build (cross-platform leg)
+        if: runner.os == 'Linux'
+        # No --framework filter: legacy GUI.WinForms (net10.0-windows) builds via
+        # EnableWindowsTargeting=true. Re-add --framework net10.0 once the GUI
+        # migrates to Avalonia (see CLAUDE.md migration tracker, phase 4).
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Build (full leg, includes net10.0-windows)
+        if: runner.os == 'Windows'
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Test (cross-platform leg)
+        if: runner.os == 'Linux'
+        run: dotnet test --framework net10.0 --configuration Release --no-build --filter "Category!=RequiresHardware&Category!=RequiresWindows" --logger "trx;LogFileName=test-results.trx"
+
+      - name: Test (full leg)
+        if: runner.os == 'Windows'
+        run: dotnet test --configuration Release --no-build --filter "Category!=RequiresHardware" --logger "trx;LogFileName=test-results.trx"
+
+      - name: Test report
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Tests (${{ matrix.os }})
+          path: '**/test-results.trx'
+          reporter: dotnet-trx
