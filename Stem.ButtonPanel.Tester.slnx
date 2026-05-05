@@ -1,7 +1,4 @@
 <Solution>
-  <Folder Name="/docs/">
-    <File Path="docs/BUTTONPANEL_TESTER.md" />
-  </Folder>
   <Folder Name="/Solution Items/">
     <File Path=".editorconfig" />
     <File Path=".gitattributes" />
@@ -12,7 +9,6 @@
     <File Path="Directory.Build.props" />
     <File Path="Directory.Packages.props" />
     <File Path="global.json" />
-    <File Path="ISSUES_TRACKER.md" />
     <File Path="LICENSE" />
     <File Path="README.md" />
   </Folder>
