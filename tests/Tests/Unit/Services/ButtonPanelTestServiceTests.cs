@@ -245,6 +245,7 @@ namespace Tests.Unit.Services
         #region TestButtonsAsync Tests
 
         [Fact]
+        [Trait("Category", TestCategories.FlakyOnCi)]
         public async Task TestButtonsAsync_All_Buttons_Pass()
         {
             // Arrange

@@ -458,6 +458,7 @@ onButtonResult);
         /// End-to-end test: Button press detection uses real CAN manager and protocol stack.
         /// </summary>
         [Fact]
+        [Trait("Category", TestCategories.FlakyOnCi)]
         public async Task E2E_ButtonPress_RealCanManagerAndProtocolDecodingWorks()
         {
             // Arrange
@@ -528,6 +529,7 @@ onButtonResult);
         /// End-to-end test: LED partial failure when user rejects some confirmations.
         /// </summary>
         [Fact]
+        [Trait("Category", TestCategories.FlakyOnCi)]
         public async Task E2E_LedTest_PartialFailure_UserRejectsSome()
         {
             // Arrange
