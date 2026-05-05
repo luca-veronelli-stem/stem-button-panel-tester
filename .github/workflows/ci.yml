@@ -82,7 +82,7 @@ jobs:
         run: dotnet test --configuration Release --no-build --filter "Category!=RequiresHardware&Category!=FlakyOnCi" --logger "trx;LogFileName=test-results.trx"
 
       - name: Test report
-        uses: dorny/test-reporter@v1
+        uses: dorny/test-reporter@v3
         if: always()
         with:
           name: Tests (${{ matrix.os }})
