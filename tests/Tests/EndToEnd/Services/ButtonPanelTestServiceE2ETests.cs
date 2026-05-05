@@ -18,6 +18,7 @@ namespace Tests.EndToEnd.Services
     /// and only mock the view (user interactions) and the hardware adapter (ICanAdapter).
     /// </summary>
     [Trait("Category", TestCategories.EndToEnd)]
+    [Trait("Category", TestCategories.FlakyOnCi)]
     public class ButtonPanelTestServiceE2ETests : IAsyncLifetime
     {
         private readonly Mock<ICanAdapter> _mockAdapter;

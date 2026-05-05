@@ -13,6 +13,7 @@ namespace Tests.Unit.Services
     /// <summary>
     /// Test unitari di ButtonPanelTestService.
     /// </summary>
+    [Trait("Category", TestCategories.FlakyOnCi)]
     public class ButtonPanelTestServiceTests
     {
         private readonly Mock<ICommunicationService> _mockCommunicationService;

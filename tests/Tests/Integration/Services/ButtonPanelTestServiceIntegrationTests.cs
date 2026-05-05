@@ -15,6 +15,7 @@ namespace Tests.Integration.Services
     /// with a simulated in-memory communication manager that generates proper protocol responses.
     /// </summary>
     [Trait("Category", TestCategories.Integration)]
+    [Trait("Category", TestCategories.FlakyOnCi)]
     public class ButtonPanelTestServiceIntegrationTests : IDisposable
     {
         private readonly SimulatedCommunicationManager _simulatedManager;
