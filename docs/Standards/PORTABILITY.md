@@ -64,9 +64,11 @@ Everything else builds and runs on Linux and macOS. CI (see CI standard) enforce
 ## Verifying portability
 
 ```powershell
-dotnet build --framework net10.0           # cross-platform leg
-dotnet test  --framework net10.0           # cross-platform tests
+dotnet build                                 # cross-platform leg; legacy net10.0-windows projects build via EnableWindowsTargeting
+dotnet test  --framework net10.0             # cross-platform tests
 ```
+
+`dotnet build` is intentionally not filtered with `--framework net10.0`: that flag overrides per-project TFMs and breaks legacy `net10.0-windows` GUI projects (WinForms/WPF) that rely on `EnableWindowsTargeting=true` to build on Linux. The cross-platform contract is enforced by the test leg plus the explicit migration tracker in MIGRATION.
 
 If either fails on a Linux runner, the offending project is leaking platform-specific code into a non-driver layer.
 
