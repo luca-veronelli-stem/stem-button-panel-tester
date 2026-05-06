@@ -9,10 +9,10 @@
 
 ## Requirement Completeness
 
-- [ ] CHK001 Are credential lifecycle states (issued, active, revoked, rotated, expired) defined or explicitly excluded? [Gap, Spec §FR-011]
+- [x] CHK001 Are credential lifecycle states (issued, active, revoked, rotated, expired) defined or explicitly excluded? [Gap, Spec §FR-011] → **Resolved** by FR-011e: states are Provisioned / Active / Rotated / Revoked / Expired; Rotated/Revoked/Expired are runtime-equivalent (all surface as 401, trigger FR-011f).
 - [ ] CHK002 Are transport-layer requirements specified (TLS-only, minimum TLS version, certificate validation policy)? [Gap]
-- [ ] CHK003 Is the failure mode of the bootstrap/registration step on first launch specified (retry, refuse-to-start, alternate path)? Currently FR-011b mandates *that* it happens, not what happens when it fails. [Gap, Spec §FR-011b]
-- [ ] CHK004 Are credential rotation requirements defined — do keys expire, and how does the app respond to a 401 from a rotated/revoked key (silent re-bootstrap, force restart, fall back to cache)? [Gap, Spec §FR-011c]
+- [x] CHK003 Is the failure mode of the bootstrap/registration step on first launch specified (retry, refuse-to-start, alternate path)? Currently FR-011b mandates *that* it happens, not what happens when it fails. [Gap, Spec §FR-011b] → **Resolved** by FR-011d: distinct setup-failure log level, distinct user-facing error vs FR-008, no automatic retry storm within a single launch, retry on next launch or explicit user action.
+- [x] CHK004 Are credential rotation requirements defined — do keys expire, and how does the app respond to a 401 from a rotated/revoked key (silent re-bootstrap, force restart, fall back to cache)? [Gap, Spec §FR-011c] → **Resolved** by FR-011f: 401 → engage FR-003 cache fallback, no in-session retry with same credential, distinct auth-failure log level, distinct UI signal vs network failure, re-provisioning on next launch or user-triggered manual refresh.
 - [ ] CHK005 Is the cache JSON schema (top-level fields: payload, `fetched_at`, schema version, schema discriminator) defined as a hard requirement, not only as a sketch in the Entities section? [Gap, Spec §FR-002]
 - [ ] CHK006 Are cache-write failure semantics specified (disk full, permission denied, AV scanner blocking write)? FR-002 mandates persistence "before consumed by other components" but says nothing about what to do when persistence itself fails. [Gap, Spec §FR-002]
 - [ ] CHK007 Is credential-storage corruption handled, parallel to FR-010 for the dictionary cache? An unreadable encrypted credential blob should presumably trigger re-bootstrap rather than crash. [Gap, Spec §FR-011a]
@@ -22,7 +22,7 @@
 
 - [ ] CHK009 Is "encrypted-at-rest" quantified with a minimum strength (e.g. "at least DPAPI on Windows, or equivalent system-bound mechanism") rather than "any encryption"? [Ambiguity, Spec §FR-011a]
 - [ ] CHK010 Is "normal operation" in FR-011a defined or contrasted with abnormal operation (debug builds, recovery flows, uninstall)? Without that boundary, the "no plaintext on disk" rule is not testable. [Ambiguity, Spec §FR-011a]
-- [ ] CHK011 Is "installation" in FR-011c defined as an identity unit — per-user-on-machine, per-machine, or per-app-instance — particularly given FR-013's per-user-per-machine cache scope? Mismatched identity granularity between cache and credential will surface in `/speckit-plan`. [Ambiguity, Spec §FR-011c, FR-013]
+- [x] CHK011 Is "installation" in FR-011c defined as an identity unit — per-user-on-machine, per-machine, or per-app-instance — particularly given FR-013's per-user-per-machine cache scope? Mismatched identity granularity between cache and credential will surface in `/speckit-plan`. [Ambiguity, Spec §FR-011c, FR-013] → **Resolved** by new **Installation** entity in Key Entities + FR-011c rewording: an Installation = one Windows user account on one workstation; same identity unit for cache (FR-013) and credential (FR-011 family); no cross-talk between Installations on the same machine.
 - [ ] CHK012 Is "no manual configuration step by the supplier" scoped to credential-specific input, or does it also forbid OS prompts, EULA acceptance, install-path selection, etc.? [Ambiguity, Spec §FR-011b]
 - [ ] CHK013 Is "application startup" in FR-001 defined as a specific lifecycle point — before splash, after splash but before main view, blocking the UI thread or async? [Ambiguity, Spec §FR-001]
 - [ ] CHK014 Is "successful API fetch" in FR-004 defined as `HTTP 200 + parseable + schema-conformant body`, or merely `HTTP 200`? US2 acceptance scenario 2 implies the former; FR-004 alone is silent. [Clarity, Spec §FR-004, US2 AC2]
@@ -30,14 +30,14 @@
 
 ## Requirement Consistency
 
-- [ ] CHK016 Do FR-011 ("API key") and FR-011b ("registers itself or unwraps its embedded bootstrap") agree on what the **wire-level credential** is versus what the **install-time artefact** is? Spec should be unambiguous that the API key is the runtime credential and the bootstrap is a transient artefact. [Consistency, Spec §FR-011, FR-011b]
+- [x] CHK016 Do FR-011 ("API key") and FR-011b ("registers itself or unwraps its embedded bootstrap") agree on what the **wire-level credential** is versus what the **install-time artefact** is? Spec should be unambiguous that the API key is the runtime credential and the bootstrap is a transient artefact. [Consistency, Spec §FR-011, FR-011b] → **Resolved** by FR-011 rewording: API key is explicitly named as the wire-level credential; the bootstrap/registration mechanism is a separate provisioning concern that yields the API key.
 - [ ] CHK017 Does FR-003 ("fall back ... for any reason") align with the Edge Cases treatment of auth failure ("treat as 'API unreachable' for fallback purposes, but surface a distinct error message")? Both should use the same fallback code path but the spec should be explicit that auth failure is one cause among many, not a separate flow. [Consistency, Spec §FR-003, Edge Cases]
 - [ ] CHK018 Do FR-009 ("no other source consulted at runtime") and the Assumption about Excel fixture support in tests coexist without contradiction? "Runtime" should be defined as production runtime, not test runtime. [Consistency, Spec §FR-009, Assumptions]
 - [ ] CHK019 Are FR-002 ("persist before consumed") and FR-004 ("overwrite on every successful fetch") complementary (different invariants) rather than redundant statements of the same rule? [Consistency, Spec §FR-002, FR-004]
 
 ## Scenario & Edge-Case Coverage
 
-- [ ] CHK020 Are concurrent-instance cache write semantics captured in a functional requirement, not only in Edge Cases prose? "One wins" needs an FR with a verifiable invariant (no torn writes; final-cache-state is one of the writers' payloads, not a mix). [Coverage, Spec §FR-002, Edge Cases]
+- [x] CHK020 Are concurrent-instance cache write semantics captured in a functional requirement, not only in Edge Cases prose? "One wins" needs an FR with a verifiable invariant (no torn writes; final-cache-state is one of the writers' payloads, not a mix). [Coverage, Spec §FR-002, Edge Cases] → **Resolved** by FR-002 extension: cache writes MUST be atomic (write-temp-then-rename or filesystem lock); torn cache files explicitly forbidden; final state contains one writer's complete payload.
 - [ ] CHK021 Are "manual refresh during in-flight startup fetch" semantics specified (coalesce, reject with "refresh in progress", or wait)? US3 AC3 covers manual-refresh-while-live but not manual-refresh-while-startup-fetching. [Coverage, Gap, Spec §US3]
 
 ## Acceptance-Criteria Quality & Measurability
