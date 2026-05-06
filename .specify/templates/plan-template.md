@@ -29,9 +29,16 @@
 
 ## Constitution Check
 
-*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
+*GATE: Must pass before Phase 0 research. Re-check after Phase 1 design. Reference: [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md) v1.0.0.*
 
-[Gates determined based on constitution file]
+Address each principle explicitly. For violations, list them under "Complexity Tracking" with rationale.
+
+- **I. Standards-First.** Which `docs/Standards/*.md` apply to this feature? Are any deviations needed? If yes, where is the deviation tracked in `CLAUDE.md` and which issue covers it?
+- **II. Layered Architecture.** Which projects (Core / Infrastructure / Communication / Services / Data / GUI.WinForms) are touched? Confirm no upward or skip-layer dependencies are introduced. If a new layer or cross-cutting concern is needed, justify under Complexity Tracking.
+- **III. Test-First with Hardware Stratification.** What are the test seams? Which tests run host-only on CI? Which require Peak PCAN-USB and will be traited `Category=FlakyOnCi`? Confirm tests are written before implementation in the task ordering.
+- **IV. Pragmatic .NET Defaults.** Any new interfaces — do they have ≥2 implementations or cross a unit-test boundary? Any new test files using `Moq` (forbidden in new tests; manual fakes only)? Composition root touched only in `GUI.WinForms`?
+- **V. English by Default.** All new identifiers, comments, GUI strings, and docs in English? Italian content authorized only by an explicit feature requirement (note here).
+- **VI. Migration Discipline.** Is this feature targeting an active migration phase (per `CLAUDE.md` "Active migrations") or the current implementation? Confirm no hybrid layer is introduced.
 
 ## Project Structure
 
