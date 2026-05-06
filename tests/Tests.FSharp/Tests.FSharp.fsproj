@@ -11,6 +11,11 @@
     <Compile Include="Core\Dictionary\InstallationTests.fs" />
     <Compile Include="Core\Dictionary\DictionaryFetchResultTests.fs" />
     <Compile Include="Core\Dictionary\DictionarySourceTests.fs" />
+    <Compile Include="Services\Dictionary\_Fakes.fs" />
+    <Compile Include="Services\Dictionary\DictionaryServiceLiveSuccessTests.fs" />
+    <Compile Include="Services\Dictionary\DictionaryServiceFallbackTests.fs" />
+    <Compile Include="Services\Dictionary\DictionaryServiceNoDictionaryTests.fs" />
+    <Compile Include="Services\Dictionary\DictionaryServiceSetupIncompleteTests.fs" />
   </ItemGroup>
 
   <ItemGroup>
@@ -29,7 +34,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\Core.FSharp\Core.FSharp.fsproj" />
+    <ProjectReference Include="..\..\src\Services.FSharp\Services.FSharp.fsproj" />
   </ItemGroup>
 
 </Project>

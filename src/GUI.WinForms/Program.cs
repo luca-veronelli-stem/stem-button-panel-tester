@@ -9,6 +9,7 @@ using Core.Interfaces.Communication;
 using Core.Interfaces.Data;
 using Core.Interfaces.Infrastructure;
 using Core.Interfaces.Services;
+using System.Threading;
 using Data;
 using GUI.Windows.Composition;
 using Infrastructure;
@@ -247,7 +248,34 @@ namespace GUI.Windows
 
                 // Costruisci il service provider and run
                 await using ServiceProvider serviceProvider = services.BuildServiceProvider();
-                logger.LogInformation("ServiceProvider built successfully. Running application.");
+                logger.LogInformation("ServiceProvider built successfully.");
+
+                // Bootstrap DPAPI credential (no-op if already provisioned).
+                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                {
+                    DictionaryCredentialBootstrap? bootstrap = serviceProvider.GetService<DictionaryCredentialBootstrap>();
+                    if (bootstrap is not null)
+                    {
+                        await bootstrap.EnsureAsync(CancellationToken.None).ConfigureAwait(false);
+                    }
+                }
+
+                // Initial dictionary fetch (live → cache fallback). The result
+                // is held inside the singleton DictionaryService and consumed
+                // by the GUI in US3.
+                Stem.ButtonPanel.Tester.Services.Dictionary.DictionaryService dictionaryService =
+                    serviceProvider.GetRequiredService<Stem.ButtonPanel.Tester.Services.Dictionary.DictionaryService>();
+                Stem.ButtonPanel.Tester.Services.Dictionary.DictionaryStateUpdate initialUpdate =
+                    await dictionaryService.InitializeAsync(CancellationToken.None).ConfigureAwait(false);
+                if (initialUpdate.IsNoDictionaryAvailable)
+                {
+                    var none = (Stem.ButtonPanel.Tester.Services.Dictionary.DictionaryStateUpdate.NoDictionaryAvailable)initialUpdate;
+                    logger.LogError(
+                        "Initial dictionary load failed (LiveReason={LiveReason}); GUI will surface FR-008 / FR-011d error.",
+                        none.LiveReason);
+                }
+
+                logger.LogInformation("Running application.");
                 Application.Run(serviceProvider.GetRequiredService<Form1>());
             }
             catch (Exception ex)

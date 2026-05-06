@@ -5,7 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="_Placeholder.fs" />
+    <Compile Include="Dictionary\DictionaryServiceTypes.fs" />
+    <Compile Include="Dictionary\DictionaryService.fs" />
   </ItemGroup>
 
   <ItemGroup>
