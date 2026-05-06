@@ -26,6 +26,18 @@ The v1 standards landed in the *standards-definition* design session. The rollou
 
 Each phase opens a single PR per repo titled `chore: adopt llm-settings v1.0.0 standards`.
 
+## Rollout phase for v1.2.0 — docs standards
+
+`v1.2.0` adds eight content standards (`EVENTARGS`, `VISIBILITY`, `LOGGING`, `THREAD_SAFETY`, `CANCELLATION`, `COMMENTS`, `ERROR_HANDLING`, `CONFIGURATION`) and three doc templates (`STANDARD_TEMPLATE.md`, `README_TEMPLATE.md`, `API_SURFACE.md`). It is a minor bump — non-breaking — so adoption is opt-in per repo and can happen in any order.
+
+Per-repo adoption PR (`chore: bump standards to v1.2.0`):
+
+1. **Before running the script:** run a one-time export of any open `<Component>/ISSUES.md` and root-level `ISSUES_TRACKER.md` entries to GitHub Issues with appropriate labels (`feat`/`fix`/`chore`/…). The rollout deletes those files; their content has to land in the tracker first or it's lost.
+2. Re-run `eng/apply-repo-standard.ps1 -StandardVersion v1.2.0`. The script regenerates `docs/Standards/` with the new content standards alongside the v1.0 ones, removes the on-disk `ISSUES.md` / `ISSUES_TRACKER.md` files (their content is now in the GitHub tracker), and refreshes per-component `README.md` files using the new template (manual review for any per-repo-specific content the template doesn't cover).
+3. Bump the per-repo `CLAUDE.md` `**Standard version:**` line to `v1.2.0`.
+4. Update `state/repos.md` to reflect the bump.
+5. Single-commit PR.
+
 ## What a v1 adoption PR contains
 
 For an archetype A repo:
