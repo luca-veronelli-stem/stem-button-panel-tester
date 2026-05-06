@@ -1,34 +1,39 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: (initial) → 1.0.0
-Bump rationale: First ratified constitution for stem-button-panel-tester. MAJOR because every principle is new; no prior governance to break.
+Version change: 1.0.0 → 1.0.1 (PATCH)
+Bump rationale: Wording correction in Development Workflow. The original draft asserted
+that the speckit `NNN-feature-name` numeric branch convention is "not used in this repo".
+First contact with the speckit prerequisite scripts proved the assertion wrong: the scripts
+gate path resolution on this convention, and working around them costs more than aligning.
+This is a clarification, not a principle change — no semantic shift, no governance change.
 
-Modified principles: (none — first version)
-Added principles:
-  I.   Standards-First (NON-NEGOTIABLE)
-  II.  Layered Architecture (NON-NEGOTIABLE)
-  III. Test-First with Hardware Stratification (NON-NEGOTIABLE)
-  IV.  Pragmatic .NET Defaults
-  V.   English by Default
-  VI.  Migration Discipline
+Modified principles: (none)
+Modified sections:
+  - Development Workflow → "Branches" bullet now explicitly distinguishes general work
+    branches (`feat/<desc>` etc.) from SDD branches under `/speckit-*`, which use
+    `feat/NNN-feature-name` (the gitflow form spec-kit's scripts accept) and pair with
+    `specs/NNN-feature-name/`.
 
-Added sections:
-  - Domain Constraints
-  - Development Workflow
-  - Governance
-
+Added principles: (none)
+Added sections: (none)
 Removed sections: (none)
 
 Templates requiring updates:
-  ✅ .specify/templates/plan-template.md         — Constitution Check section filled with per-principle gates
-  ✅ .specify/templates/tasks-template.md        — "tests OPTIONAL" softened to align with Principle III; hardware stratification note added
-  ⚠ .specify/templates/spec-template.md         — No change required (principles are stack-agnostic at the spec layer)
-  ⚠ .specify/templates/checklist-template.md    — No change required (per-feature checklists are constitution-aware via /speckit-checklist)
-  ⚠ docs/Standards/*                              — No change; standards are upstream-managed via apply-repo-standard.ps1
-  ⚠ CLAUDE.md                                     — No change; "Active migrations" section already supports Principle VI
+  ⚠ .specify/templates/plan-template.md         — No change (gates unaffected by branch naming)
+  ⚠ .specify/templates/tasks-template.md        — No change
+  ⚠ .specify/templates/spec-template.md         — No change
+  ⚠ .specify/templates/checklist-template.md    — No change
+  ⚠ docs/Standards/*                              — No change
 
 Follow-up TODOs: (none)
+
+Prior version's Sync Impact Report (v1.0.0) — preserved for traceability:
+  Version: (initial) → 1.0.0 (MAJOR; first ratified governance)
+  Added principles: I Standards-First, II Layered Architecture, III Test-First with
+    Hardware Stratification (all NON-NEGOTIABLE), IV Pragmatic .NET Defaults,
+    V English by Default, VI Migration Discipline.
+  Added sections: Domain Constraints, Development Workflow, Governance.
 -->
 
 # Stem.ButtonPanel.Tester Constitution
@@ -93,7 +98,7 @@ Active migrations are tracked in `CLAUDE.md` under "Active migrations" with PR a
 
 ## Development Workflow
 
-- **Branches.** `feat/<short-description>`, `fix/<short-description>`, `refactor/<…>`, `docs/<…>`, `chore/<…>`, `test/<…>`. Branches are cut from `github/main`. Spec-Driven Development branches use the same convention — the speckit numeric `001-…` convention is **not** used in this repo.
+- **Branches.** General work branches: `feat/<short-description>`, `fix/<short-description>`, `refactor/<…>`, `docs/<…>`, `chore/<…>`, `test/<…>`. Spec-Driven Development branches paired with a `specs/NNN-feature-name/` directory MUST use the speckit-compatible form `feat/NNN-feature-name` (gitflow form: speckit's prerequisite scripts strip the leading segment and gate path resolution on the `NNN-` prefix). All branches are cut from `github/main`.
 - **Commits.** Conventional Commits, lowercase after the colon, imperative mood, English body. One concern per commit. Use `git commit --fixup=<sha>` + `git rebase -i --autosquash` to consolidate before pushing — never accumulate "fix the previous commit" commits.
 - **Pull Requests.** Open on **GitHub** via `gh pr create`. Never on Bitbucket. PR title in Conventional-Commits form; PR body explains *what* and *why*, plus alternatives considered. At least one of the labels `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `ci` is mandatory.
 - **CI.** GitHub Actions is the CI of record. PRs MUST be green before merge (`gh pr checks <PR>`). Local pre-push: `dotnet build -c Release` and `dotnet test tests/Tests.csproj --framework net10.0`.
@@ -110,4 +115,4 @@ Active migrations are tracked in `CLAUDE.md` under "Active migrations" with PR a
 - **Compliance.** Every `/speckit-plan` invocation MUST include a Constitution Check gate that explicitly addresses each principle (`I` through `VI`). Plans with unresolved gate violations MUST list them under "Complexity Tracking" with rationale; unjustified violations block `/speckit-tasks`.
 - **Runtime guidance.** `CLAUDE.md` carries the project-specific notes (vendor quirks, deviations, active migrations). `docs/Standards/` carries the cross-repo standards. This constitution carries only the principles that govern *how this project plans and ships work*.
 
-**Version**: 1.0.0 | **Ratified**: 2026-05-06 | **Last Amended**: 2026-05-06
+**Version**: 1.0.1 | **Ratified**: 2026-05-06 | **Last Amended**: 2026-05-06
