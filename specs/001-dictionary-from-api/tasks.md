@@ -154,16 +154,16 @@ description: "Task list for feature implementation"
 
 > Host-only. F# manual fakes for the orchestrator tests; no Moq.
 
-- [ ] T080 [P] [US3] Test: `Cached → Live` transition on `RefreshAsync` success — the `Source` event fires with the new `Live(now)` and the cache is overwritten. File: `tests/Tests/Services/Dictionary/DictionaryServiceRefreshCachedToLiveTests.fs`.
-- [ ] T081 [P] [US3] Test: `Live → Live` (timestamp updated) on `RefreshAsync` success while already Live. File: `tests/Tests/Services/Dictionary/DictionaryServiceRefreshLiveToLiveTests.fs`.
-- [ ] T082 [P] [US3] Test: `RefreshAsync` failure while Live retains the prior `Live` state (no regression to `Cached` mid-session, per data-model.md). The new failure is logged but the state event does NOT fire. File: `tests/Tests/Services/Dictionary/DictionaryServiceRefreshLiveFailureTests.fs`.
-- [ ] T083 [P] [US3] Test: concurrent `RefreshAsync` calls — second call coalesces with the first (returns the same `Task<DictionarySource>`) OR returns `RefreshInProgress` synchronously. CHK021. File: `tests/Tests/Services/Dictionary/DictionaryServiceConcurrentRefreshTests.fs`.
+- [X] T080 [P] [US3] Test: `Cached → Live` transition on `RefreshAsync` success — the `Source` event fires with the new `Live(now)` and the cache is overwritten. File: `tests/Tests/Services/Dictionary/DictionaryServiceRefreshCachedToLiveTests.fs`.
+- [X] T081 [P] [US3] Test: `Live → Live` (timestamp updated) on `RefreshAsync` success while already Live. File: `tests/Tests/Services/Dictionary/DictionaryServiceRefreshLiveToLiveTests.fs`.
+- [X] T082 [P] [US3] Test: `RefreshAsync` failure while Live retains the prior `Live` state (no regression to `Cached` mid-session, per data-model.md). The new failure is logged but the state event does NOT fire. File: `tests/Tests/Services/Dictionary/DictionaryServiceRefreshLiveFailureTests.fs`.
+- [X] T083 [P] [US3] Test: concurrent `RefreshAsync` calls — second call coalesces with the first (returns the same `Task<DictionarySource>`) OR returns `RefreshInProgress` synchronously. CHK021. File: `tests/Tests/Services/Dictionary/DictionaryServiceConcurrentRefreshTests.fs`.
 
 ### Implementation for US3
 
-- [ ] T090 [US3] In `src/GUI.WinForms/MainForm.cs`: add a `dictionarySourceLabel` (Label control) bound to `DictionaryService.Source`. Distinct visual states for `Live`, `Cached(NetworkUnreachable)`, `Cached(Unauthorized)`, `Cached(other)`, plus a transient "Refreshing…" state during in-flight requests (FR-005, FR-011f distinct UI). Strings in English; localization is a separate pass.
-- [ ] T091 [US3] In `src/GUI.WinForms/MainForm.cs`: add a `refreshDictionaryButton` (Button control), visible from main view per FR-006. Click handler: call `DictionaryService.RefreshAsync(ct)` with `ct` bound to form `FormClosed` event. Disable button while refresh is in-flight; re-enable on completion.
-- [ ] T092 [US3] In `src/GUI.WinForms/MainForm.cs`: hook async-void `try/catch` discipline per `ERROR_HANDLING` standard + open issue #20. Any exception escaping the click handler is logged via `ILogger` and surfaced as a non-fatal toast; never crash the form.
+- [X] T090 [US3] In `src/GUI.WinForms/MainForm.cs`: add a `dictionarySourceLabel` (Label control) bound to `DictionaryService.Source`. Distinct visual states for `Live`, `Cached(NetworkUnreachable)`, `Cached(Unauthorized)`, `Cached(other)`, plus a transient "Refreshing…" state during in-flight requests (FR-005, FR-011f distinct UI). Strings in English; localization is a separate pass.
+- [X] T091 [US3] In `src/GUI.WinForms/MainForm.cs`: add a `refreshDictionaryButton` (Button control), visible from main view per FR-006. Click handler: call `DictionaryService.RefreshAsync(ct)` with `ct` bound to form `FormClosed` event. Disable button while refresh is in-flight; re-enable on completion.
+- [X] T092 [US3] In `src/GUI.WinForms/MainForm.cs`: hook async-void `try/catch` discipline per `ERROR_HANDLING` standard + open issue #20. Any exception escaping the click handler is logged via `ILogger` and surfaced as a non-fatal toast; never crash the form.
 
 **Checkpoint**: all three user stories functional. Feature is shippable to internal demo and, after Polish, to suppliers.
 
