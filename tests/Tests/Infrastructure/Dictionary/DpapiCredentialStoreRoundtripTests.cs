@@ -6,7 +6,7 @@ using Stem.ButtonPanel.Tester.Core.Dictionary;
 
 namespace Tests.Infrastructure.Dictionary;
 
-[Trait("Category", "WindowsOnly")]
+[Trait("Category", "RequiresWindows")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class DpapiCredentialStoreRoundtripTests
 {

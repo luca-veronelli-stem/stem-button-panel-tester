@@ -5,7 +5,7 @@ using Microsoft.FSharp.Core;
 
 namespace Tests.Infrastructure.Dictionary;
 
-[Trait("Category", "WindowsOnly")]
+[Trait("Category", "RequiresWindows")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class DpapiCredentialStoreClearTests
 {

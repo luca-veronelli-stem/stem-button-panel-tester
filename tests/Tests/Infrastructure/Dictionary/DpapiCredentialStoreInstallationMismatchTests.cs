@@ -10,7 +10,7 @@ using Stem.ButtonPanel.Tester.Core.Dictionary;
 
 namespace Tests.Infrastructure.Dictionary;
 
-[Trait("Category", "WindowsOnly")]
+[Trait("Category", "RequiresWindows")]
 [System.Runtime.Versioning.SupportedOSPlatform("windows")]
 public class DpapiCredentialStoreInstallationMismatchTests
 {
@@ -33,7 +33,7 @@ public class DpapiCredentialStoreInstallationMismatchTests
             installation = foreignInstallation,
         });
         byte[] cleartext = Encoding.UTF8.GetBytes(json);
-#pragma warning disable CA1416 // platform-bound — the test trait is WindowsOnly.
+#pragma warning disable CA1416 // platform-bound — the test trait is RequiresWindows.
         byte[] ciphertext = ProtectedData.Protect(cleartext, Entropy, DataProtectionScope.CurrentUser);
 #pragma warning restore CA1416
         File.WriteAllBytes(harness.FilePath, ciphertext);
