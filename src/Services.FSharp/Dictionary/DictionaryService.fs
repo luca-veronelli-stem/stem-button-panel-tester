@@ -121,16 +121,33 @@ type DictionaryService(
     /// Manual refresh (FR-006). Concurrent callers coalesce: the second
     /// caller awaits the same task as the first.
     member _.RefreshAsync(ct: CancellationToken) : Task<DictionaryStateUpdate> =
-        let task =
-            lock stateLock (fun () ->
-                match inFlight with
-                | ValueSome t -> t
-                | ValueNone ->
-                    let t = runRefresh ct
-                    inFlight <- ValueSome t
-                    let _ = t.ContinueWith(
-                                Action<Task<DictionaryStateUpdate>>(fun _ ->
-                                    lock stateLock (fun () -> inFlight <- ValueNone)),
-                                TaskScheduler.Default)
-                    t)
-        task
+        // We must register the in-flight task BEFORE the underlying work runs,
+        // because `runRefresh ct` may complete synchronously when its awaits
+        // resolve to already-completed tasks (e.g. in tests). A naive
+        // `inFlight <- ValueSome (task { ... })` runs the body to completion
+        // — including the cleanup that clears `inFlight` — *before* the
+        // assignment happens, leaving `inFlight` permanently stuck.
+        //
+        // Solution: register a TaskCompletionSource-backed task first, then
+        // dispatch the actual work on the thread pool so it runs after the
+        // outer lock releases.
+        lock stateLock (fun () ->
+            match inFlight with
+            | ValueSome t -> t
+            | ValueNone ->
+                let tcs = TaskCompletionSource<DictionaryStateUpdate>()
+                inFlight <- ValueSome tcs.Task
+                let _ =
+                    Task.Run(fun () ->
+                        task {
+                            try
+                                try
+                                    let! result = runRefresh ct
+                                    tcs.TrySetResult result |> ignore
+                                with
+                                | :? OperationCanceledException as oce -> tcs.TrySetCanceled oce.CancellationToken |> ignore
+                                | ex -> tcs.TrySetException ex |> ignore
+                            finally
+                                lock stateLock (fun () -> inFlight <- ValueNone)
+                        } :> Task)
+                tcs.Task)
