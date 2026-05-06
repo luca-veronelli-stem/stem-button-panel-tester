@@ -16,6 +16,7 @@ non-default port for a development service, security exception.
 - **Peak PCAN-USB hardware required.** `Peak.PCANBasic.NET` (driver-only, Windows TFM) wraps a vendor SDK that needs a real Peak PCAN-USB adapter for end-to-end tests. CI runs without hardware, so E2E and most Integration tests are traited `Category=FlakyOnCi` and excluded from required CI runs.
 - **Excel protocol dictionaries.** `Data` uses ClosedXML to read STEM protocol/variable dictionaries from `.xlsx` fixture files; the `-7155632` ARGB cell-color literal (see #28) is the tag the dictionary maintainers use to mark valid variable rows.
 - **Mocking-library deviation from `dotnet.md`.** The test suite still uses `Moq` (9 files); manual-fakes migration is not yet scheduled — track separately from the F# migration.
+- **License is a STEM-internal proprietary notice.** `LICENSE` is the same template used across STEM repos (upstream copy under `llm-settings/shared/templates/LICENSE.template`); update there when STEM settles on a definitive corporate template.
 
 ## Language choices that deviate from defaults
 
