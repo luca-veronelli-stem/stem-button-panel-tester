@@ -10,8 +10,10 @@ using Core.Interfaces.Data;
 using Core.Interfaces.Infrastructure;
 using Core.Interfaces.Services;
 using Data;
+using GUI.Windows.Composition;
 using Infrastructure;
 using Infrastructure.Lib;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Services;
@@ -105,8 +107,21 @@ namespace GUI.Windows
                     TryWriteErrorFiles(Path.Combine(baseDir, "pcan-error.txt"), e.Exception, logger);
                 };
 
+                // Configuration (appsettings.json + Development overrides + env vars).
+                IConfiguration configuration = new ConfigurationBuilder()
+                    .SetBasePath(baseDir)
+                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                    .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
+                    .AddEnvironmentVariables()
+                    .Build();
+
                 // Imposta il container di DI
                 var services = new ServiceCollection();
+                services.AddSingleton(configuration);
+
+                // Dictionary support (US1 wires HttpDictionaryClient + placeholder credential store;
+                // US2 swaps in DpapiCredentialStore + cache + service orchestrator).
+                services.AddDictionarySupport(configuration);
 
                 // Imposta logging for DI consumer code (re-use file provider so all logs end up in the same file)
                 services.AddLogging(builder =>
