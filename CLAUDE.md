@@ -31,6 +31,6 @@ records a one-sentence justification here.
 
 - [x] Phase 1: structural adoption (v1.0 standards) — PR #1 — landed 2026-05-05.
 - [x] v1.2.1 docs-standards alignment — PR #16 — landed 2026-05-06.
-- [ ] Phase 2: F# migration of `Core` — not yet scheduled.
-- [ ] Phase 3: F# migration of `Services` — not yet scheduled.
+- [~] Phase 2: F# migration of `Core` — **partial-active** since `feat/001-dictionary-from-api`. New Core types land in `src/Core.FSharp/` (F#); existing C# types in `src/Core/` migrate per individual PRs as features touch them. Constitution VI's "no hybrid inside one project" rule is preserved by using sibling projects, not mixed `.cs` + `.fs` in `Core`. Beachhead: `feat/001-dictionary-from-api`.
+- [~] Phase 3: F# migration of `Services` — **partial-active** since `feat/001-dictionary-from-api`. New orchestration code lands in `src/Services.FSharp/` (F#); existing C# services migrate per individual PRs. Beachhead: `feat/001-dictionary-from-api`.
 - [ ] Phase 4: Avalonia migration of `GUI.WinForms` → `GUI` — not yet scheduled (see #20 for try/catch hardening until then).
