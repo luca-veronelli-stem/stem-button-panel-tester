@@ -1,9 +1,18 @@
 # Feature Specification: Dictionary from stem-dictionaries-manager API
 
-**Feature Branch**: `feat/dictionary-from-api`
+**Feature Branch**: `feat/001-dictionary-from-api`
 **Created**: 2026-05-06
 **Status**: Draft
 **Input**: User description: "Replace the Excel-fed button panel dictionary with the stem-dictionaries-manager API as the authoritative source, falling back to a local JSON cache (refreshed on every successful API fetch) when the API is unreachable. Same general approach as stem-device-manager, but with a JSON cache instead of an .xlsx fallback."
+
+## Clarifications
+
+### Session 2026-05-06
+
+- Q: Auth mechanism — API key, OAuth, mutual TLS, or same-as-`stem-device-manager`? → A: **API key**, but stored securely (not plaintext as in `stem-device-manager`'s current `appsettings.json` approach). Spec captures the security posture (encrypted-at-rest, no manual supplier setup, per-installation revocable). Concrete mechanism — bootstrap-exchange vs per-supplier installer + DPAPI — deferred to `/speckit-plan`.
+- Q: Cache scope and storage location — per-user, per-machine, per-environment? → A: **Per-user, per-machine, single environment** at `%LOCALAPPDATA%\Stem.ButtonPanel.Tester\dictionary.json`. Per-environment partitioning is **not** in scope for v1 but is a forward-compatible future change (FR-010 already mandates that an unreadable cache is treated as absent rather than as a hard error, so changing the path later is non-destructive).
+- Q: API fetch timeout — 3s, 5s, 10s, configurable? → A: **5 seconds** (end-to-end). Matches SC-004's healthy-connection budget; on timeout the app behaves as if the API were unreachable and falls back to the cache (FR-003).
+- Q: SC-006 baseline cycle time — what is it today? → A: Reframed. The SC is no longer "drop from X to Y" but expressed as a forward-looking contract: **automatic refresh on every app launch (already FR-001), plus an always-available GUI-exposed manual refresh (FR-006) for on-demand updates within a session**. No timer-driven background refresh, no Windows scheduled task — keep the architecture simple. The cost is that an app left open for many hours sees a fresh dictionary only when the user clicks Refresh or restarts; that trade-off is accepted explicitly.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -74,13 +83,18 @@ A test technician wants to know whether the dictionary they are working with is 
 - **FR-003**: System MUST fall back to the cached dictionary when the API call fails for any reason — connection refused, timeout exceeded, HTTP error, malformed payload, or authentication failure.
 - **FR-004**: System MUST overwrite the cache on every successful API fetch so the cache is always the most recent good response.
 - **FR-005**: System MUST display, somewhere in the application UI, whether the active dictionary was loaded from the API ("live") or from the cache ("cached"), including the timestamp of the cache when the cached path is taken.
-- **FR-006**: System MUST allow the user to trigger a manual dictionary refresh from the UI without restarting the app.
+- **FR-006**: System MUST expose a **manual dictionary refresh control directly in the GUI** (not buried in a settings dialog or menu archaeology) that triggers an immediate API fetch without restarting the app. The control MUST be visible from the main view.
 - **FR-007**: System MUST function — open, run panel tests, exercise all dictionary-dependent flows — once a valid cache exists, regardless of network state.
 - **FR-008**: System MUST report a clear, actionable error when no cache exists *and* the API is unreachable on first launch, and MUST NOT silently proceed with an empty or default dictionary.
 - **FR-009**: System MUST source the runtime dictionary exclusively from the API or its cache; no other source (including `.xlsx` files) is consulted at runtime once this feature is active.
 - **FR-010**: System MUST treat an unreadable cache (schema drift, corruption, version mismatch) as if no cache existed, with no user-facing crash.
-- **FR-011**: System MUST authenticate to the `stem-dictionaries-manager` API using [NEEDS CLARIFICATION: same mechanism as stem-device-manager — API key, OAuth, basic auth? Confirmed in /speckit-clarify].
-- **FR-012**: System MUST apply a configurable timeout to the API fetch [NEEDS CLARIFICATION: default timeout — 3s? 5s? 10s? — to be defined in /speckit-clarify or /speckit-plan].
+- **FR-011**: System MUST authenticate to the `stem-dictionaries-manager` API using an **API key** credential (chosen over OAuth, mutual TLS, and basic auth for operational simplicity and alignment with the rest of the STEM fleet).
+- **FR-011a**: System MUST persist the API credential in encrypted-at-rest storage on the supplier's workstation. No plaintext credential MUST appear on disk during normal operation, including in installer artefacts left on disk after install.
+- **FR-011b**: Initial credential provisioning MUST NOT require any manual configuration step by the supplier. The app boots, registers itself or unwraps its embedded bootstrap, and starts working without the supplier ever editing a file or entering a secret.
+- **FR-011c**: Per-installation API credential revocation MUST be possible without redeploying the app. The server-side identity must be granular enough that one supplier's compromised credential does not blast-radius to other installations.
+- **FR-013**: System MUST store the dictionary cache under the **per-user local-app-data directory** of the Windows user running the app (concretely: `%LOCALAPPDATA%\Stem.ButtonPanel.Tester\dictionary.json`). Cache scope is one file per Windows user account per machine; the app targets a single `stem-dictionaries-manager` environment in v1 (per-environment partitioning is out of scope but MUST remain forward-compatible — adding an environment-named subdirectory to the path later MUST NOT break existing installations).
+- **FR-014**: System MUST log every API fetch outcome (success, network failure, timeout, auth failure, malformed payload) and every cache-fallback event via `ILogger` per the project's `LOGGING` standard (`docs/Standards/LOGGING.md`). Auth failures MUST be logged at a distinct level/category from generic network failures so an ops review can distinguish "supplier credentials revoked / not yet provisioned" from "supplier offline".
+- **FR-012**: System MUST apply a **5-second end-to-end timeout** to the API fetch (covering DNS, TCP, TLS, request, and response). On timeout the fetch is treated as a failure and the cache fallback path (FR-003) takes over. The timeout MUST NOT be silently exceeded — the user-facing flow either has a fresh dictionary, a cached dictionary, or the FR-008 "no cache + no API" error within roughly the SC-004 budget.
 
 ### Key Entities
 
@@ -97,14 +111,14 @@ A test technician wants to know whether the dictionary they are working with is 
 - **SC-003**: A user can determine whether the active dictionary is live or cached, including the cache age, in ≤ 1 navigation step from the main screen (no menu archaeology).
 - **SC-004**: Time from app launch to "dictionary loaded" is ≤ 5 seconds with a healthy API connection and ≤ 1 second from a populated cache.
 - **SC-005**: Zero `.xlsx` files are read by the app at runtime once this feature is active in production. Excel-based loading code paths are either removed or guarded by a build/runtime flag that is off by default.
-- **SC-006**: After this feature ships, a dictionary update no longer requires an app redeploy; the elapsed time from "maintainer publishes change" to "users see change" drops from `[NEEDS CLARIFICATION: current cycle time, e.g. days]` to `≤ 1 app restart`.
+- **SC-006**: After this feature ships, a dictionary update no longer requires an app redeploy. From the moment a maintainer publishes a change in `stem-dictionaries-manager`, every supplier instance picks the change up on its **next app launch** (per FR-001 startup fetch), and any user can pull the change **immediately within a running session** via the GUI manual refresh control (FR-006). No file copy, no installer rerun, no scheduled task on the supplier's machine.
 
 ## Assumptions
 
 - The `stem-dictionaries-manager` API exposes a single endpoint (or a small, well-defined set) that returns the dictionary content currently loaded from `.xlsx`. The shape is close enough to the existing `Core` types that mapping is a thin transformation, not a domain rewrite.
 - Authentication and base-URL configuration for the API follow the same pattern used by `stem-device-manager` (the user's prior reference implementation).
 - The cache is a single JSON file stored under the per-user app local data directory. JSON is chosen over alternatives (SQLite, binary, .xlsx) for human inspectability and trivial schema migration; this is a default that can be revisited in `/speckit-plan` if a non-JSON format is justified.
-- The cache is per-user (not shared between users on the same machine) and per-environment (dev / staging / prod use distinct caches).
+- The cache is per-user, per-machine, single environment in v1 (one cache file per Windows user account on the workstation; the app targets one `stem-dictionaries-manager` URL). Per-environment partitioning is out of scope for v1 but the path layout chosen MUST be forward-compatible (see FR-013).
 - "Button panel dictionary" maps to a single API call — no per-panel-type fan-out.
 - The existing Excel-loading code in `Data` (with the `-7155632` ARGB literal trick, see #28) is no longer required at runtime once this feature is active; whether it stays in the test suite for unit-test fixtures is a decision deferred to `/speckit-plan`.
 - The transition is a hard cutover, not a feature-flagged dual-source mode. Once the API path is in production, the Excel path is disabled.
