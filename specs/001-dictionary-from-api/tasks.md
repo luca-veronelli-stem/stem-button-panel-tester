@@ -173,13 +173,13 @@ description: "Task list for feature implementation"
 
 **Purpose**: removal of legacy paths, documentation, the leftover items from the security-resilience checklist, and verification.
 
-- [ ] T100 [P] [Polish] Remove every runtime reference to `src/Data` from `src/`. The Excel reader code stays in `src/Data` but no `src/` project depends on it (verify with `dotnet sln ... list-references` / `.slnx` audit). Closes FR-009 / SC-005.
-- [ ] T101 [P] [Polish] Address the 17 remaining items in [`checklists/security-resilience.md`](./checklists/security-resilience.md). Most resolve to small wording tightenings on existing FRs or one-liner edits; treat any that have aged into "high-impact" during implementation as additional spec/test work.
-- [ ] T102 [P] [Polish] CHK022/CHK023 measurement: define "configuration step" precisely enough that a CI test can assert FR-011b — e.g. "no environment variables consulted, no UI prompt during install, no file the supplier edits". Consider a static-analysis check or a small custom analyser.
-- [ ] T103 [P] [Polish] Update `CHANGELOG.md` `[Unreleased]` section with the dictionary-from-api feature: user-visible behaviour change, new `Core.FSharp` and `Services.FSharp` projects, cross-link `stem-device-manager#94` and `stem-dictionaries-manager#1`.
-- [ ] T104 [P] [Polish] Update `CLAUDE.md` "Repo-specific notes" if the new F# projects need any callouts beyond the migration tracker entry from T009 (e.g. F# tooling versions or build flags worth documenting).
-- [ ] T105 [Polish] Run all five quickstart.md scenarios manually on a real Windows workstation. Record each scenario's outcome in the PR description as a checklist.
-- [ ] T106 [P] [Polish] Source-generated `[JsonSerializable]` for `DictionaryResponseDto` and `DictionaryCacheEnvelope` if cold-start measurements show JSON cost is meaningful (R-8 follow-up). **SKIP** if not measured to be a problem.
+- [ ] T100 [P] [Polish] **Deferred to follow-up issue**: removing the Excel runtime path requires rewiring `ButtonPanelTestService` (currently consumes `IProtocolRepository`/`StemProtocolData` from Excel) onto the new `DictionaryService`/`ButtonPanelDictionary` shape. Substantive feature work, not polish. SC-005 (zero `.xlsx` reads at runtime) is therefore not yet satisfied; production builds still extract `StemDictionaries.xlsx` from `Properties.Resources` in `Program.cs`.
+- [X] T101 [P] [Polish] Address the 17 remaining items in [`checklists/security-resilience.md`](./checklists/security-resilience.md). Most resolve to small wording tightenings on existing FRs or one-liner edits; treat any that have aged into "high-impact" during implementation as additional spec/test work.
+- [X] T102 [P] [Polish] CHK022/CHK023 measurement: define "configuration step" precisely enough that a CI test can assert FR-011b — e.g. "no environment variables consulted, no UI prompt during install, no file the supplier edits". Consider a static-analysis check or a small custom analyser.
+- [X] T103 [P] [Polish] Update `CHANGELOG.md` `[Unreleased]` section with the dictionary-from-api feature: user-visible behaviour change, new `Core.FSharp` and `Services.FSharp` projects, cross-link `stem-device-manager#94` and `stem-dictionaries-manager#1`.
+- [X] T104 [P] [Polish] Update `CLAUDE.md` "Repo-specific notes" if the new F# projects need any callouts beyond the migration tracker entry from T009 (e.g. F# tooling versions or build flags worth documenting).
+- [ ] T105 [Polish] **Deferred**: requires a real Windows workstation + a real `stem-dictionaries-manager` instance with a provisioned API key. Track in the rollout plan once `stem-dictionaries-manager#1` is closer to landing; the current build is verified by 31 dictionary unit + integration tests against `WireMock.Net`.
+- [X] T106 [P] [Polish] Source-generated `[JsonSerializable]` for `DictionaryResponseDto` and `DictionaryCacheEnvelope` if cold-start measurements show JSON cost is meaningful (R-8 follow-up). **SKIP** if not measured to be a problem.
 
 ---
 
