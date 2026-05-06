@@ -18,6 +18,8 @@ All notable changes to ButtonPanelTester follow [Semantic Versioning](https://se
 
 ### Changed
 
+- Constitution Principle I (Standards-First) no longer hardcodes a Standard-version literal — references the `**Standard version:**` pin in `CLAUDE.md` indirectly. Constitution bumped to `v1.0.2` (PATCH; clarification only). Tracked upstream as [`luca-veronelli-stem/llm-settings#37`](https://github.com/luca-veronelli-stem/llm-settings/issues/37) for the cross-repo guidance note.
+
 ### Fixed
 
 - Escalated the `ButtonPanelTestService` flake handling to **class-level** `Category=FlakyOnCi` on `ButtonPanelTestServiceTests`, `ButtonPanelTestServiceIntegrationTests`, and `ButtonPanelTestServiceE2ETests` after a 7th method (`TestAllAsync_Successful_Full_Test_All_Pass`) flaked on Windows CI. Per-method traits added in earlier PRs are kept (redundant but harmless) and will be cleaned up alongside the root-cause fix tracked in #3.

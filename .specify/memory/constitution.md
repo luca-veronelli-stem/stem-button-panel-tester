@@ -1,32 +1,44 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.0.1 (PATCH)
-Bump rationale: Wording correction in Development Workflow. The original draft asserted
-that the speckit `NNN-feature-name` numeric branch convention is "not used in this repo".
-First contact with the speckit prerequisite scripts proved the assertion wrong: the scripts
-gate path resolution on this convention, and working around them costs more than aligning.
-This is a clarification, not a principle change — no semantic shift, no governance change.
+Version change: 1.0.1 → 1.0.2 (PATCH)
+Bump rationale: Decouple Principle I from a hardcoded Standard-version literal. The
+prior wording asserted "STEM v1.2.1 standards verbatim", which silently goes stale on
+every standards bump — `apply-repo-standard.ps1` does not rewrite `.specify/memory/`.
+Reword to reference the Standard version indirectly via the pin in `CLAUDE.md`,
+preserving a single source of truth. Clarification, not a principle change — the rule
+is identical, only the citation pattern is updated.
 
-Modified principles: (none)
-Modified sections:
-  - Development Workflow → "Branches" bullet now explicitly distinguishes general work
-    branches (`feat/<desc>` etc.) from SDD branches under `/speckit-*`, which use
-    `feat/NNN-feature-name` (the gitflow form spec-kit's scripts accept) and pair with
-    `specs/NNN-feature-name/`.
+Modified principles:
+  - I. Standards-First — wording updated; no semantic shift. References the
+    "Standard version pinned in CLAUDE.md" rather than naming a specific tag.
 
+Modified sections: (none)
 Added principles: (none)
 Added sections: (none)
 Removed sections: (none)
 
 Templates requiring updates:
-  ⚠ .specify/templates/plan-template.md         — No change (gates unaffected by branch naming)
+  ⚠ .specify/templates/plan-template.md         — No change
   ⚠ .specify/templates/tasks-template.md        — No change
   ⚠ .specify/templates/spec-template.md         — No change
   ⚠ .specify/templates/checklist-template.md    — No change
-  ⚠ docs/Standards/*                              — No change
+  ⚠ docs/Standards/*                            — No change
 
-Follow-up TODOs: (none)
+Follow-up TODOs: Tracked upstream as luca-veronelli-stem/llm-settings#37 — promote
+the "don't hardcode the Standard version in constitution.md" guidance to MIGRATION.md
+or the speckit constitution skill so future repos adopt the indirect-reference pattern
+from the start.
+
+Prior version's Sync Impact Report (v1.0.1) — preserved for traceability:
+  Version change: 1.0.0 → 1.0.1 (PATCH)
+  Bump rationale: Wording correction in Development Workflow. The original draft asserted
+  that the speckit `NNN-feature-name` numeric branch convention is "not used in this repo".
+  First contact with the speckit prerequisite scripts proved the assertion wrong: the
+  scripts gate path resolution on this convention, and working around them costs more
+  than aligning. Clarification, not a principle change.
+  Modified sections: Development Workflow → "Branches" bullet now distinguishes general
+  work branches from SDD branches under `/speckit-*`.
 
 Prior version's Sync Impact Report (v1.0.0) — preserved for traceability:
   Version: (initial) → 1.0.0 (MAJOR; first ratified governance)
@@ -42,7 +54,7 @@ Prior version's Sync Impact Report (v1.0.0) — preserved for traceability:
 
 ### I. Standards-First (NON-NEGOTIABLE)
 
-The repo MUST follow STEM v1.2.1 standards verbatim, as inlined under [`docs/Standards/`](../../docs/Standards/) and pinned in [`CLAUDE.md`](../../CLAUDE.md). Every plan, task, and implementation MUST cite the relevant standard when its rules apply, or declare an explicit deviation in `CLAUDE.md` "Repo-specific notes" with rationale and a tracking issue. Deviations are not silent.
+The repo MUST follow the STEM v1 standards verbatim, at the **Standard version** pinned in [`CLAUDE.md`](../../CLAUDE.md), as inlined under [`docs/Standards/`](../../docs/Standards/). Every plan, task, and implementation MUST cite the relevant standard when its rules apply, or declare an explicit deviation in `CLAUDE.md` "Repo-specific notes" with rationale and a tracking issue. Deviations are not silent.
 
 **Rationale**: Cross-repo consistency is the whole point of the standards bundle. Ad-hoc divergence accumulates faster than it gets noticed. Concentrating deviations in one place makes the audit cheap and the eventual reconciliation tractable.
 
@@ -115,4 +127,4 @@ Active migrations are tracked in `CLAUDE.md` under "Active migrations" with PR a
 - **Compliance.** Every `/speckit-plan` invocation MUST include a Constitution Check gate that explicitly addresses each principle (`I` through `VI`). Plans with unresolved gate violations MUST list them under "Complexity Tracking" with rationale; unjustified violations block `/speckit-tasks`.
 - **Runtime guidance.** `CLAUDE.md` carries the project-specific notes (vendor quirks, deviations, active migrations). `docs/Standards/` carries the cross-repo standards. This constitution carries only the principles that govern *how this project plans and ships work*.
 
-**Version**: 1.0.1 | **Ratified**: 2026-05-06 | **Last Amended**: 2026-05-06
+**Version**: 1.0.2 | **Ratified**: 2026-05-06 | **Last Amended**: 2026-05-06
