@@ -18,22 +18,31 @@ ButtonPanelTester is a Windows desktop bench tool used by STEM technicians to ba
 ```powershell
 dotnet build
 dotnet test
-dotnet run --project src/ButtonPanelTester.GUI
+dotnet run --project src/GUI.WinForms
 ```
 
 ## Solution Structure
 
 ```
 src/
-├── ButtonPanelTester.Core/                domain types + ports
-├── ButtonPanelTester.Services/            use cases
-├── ButtonPanelTester.Infrastructure/      adapters (EF Core, drivers, IO)
-└── ButtonPanelTester.GUI/                 Avalonia + FuncUI
+├── Core/             domain types + ports (no external deps)
+├── Communication/    CAN protocol stack (Network/Transport/Application layers)
+├── Data/             ClosedXML-backed protocol/variable dictionaries
+├── Infrastructure/   Peak PCAN-USB adapter
+├── Services/         test workflow + state machine
+└── GUI.WinForms/     WinForms UI (Avalonia + FuncUI migration in Phase 4)
 tests/
-└── ButtonPanelTester.Tests/               xUnit + FsCheck + Avalonia.Headless
-specs/                           Lean 4 formal specs
-docs/                            documentation (Standards/ tracked here)
-eng/                             build / release scripts
+└── Tests/            xUnit + Moq (manual-fakes migration pending)
+docs/                 documentation (Standards/ tracked here)
+eng/                  build / release scripts
+```
+
+Project references follow the onion direction (outer → inner). `GUI.WinForms` is the composition root and references every other project; `Services` calls `IProtocolRepository` (defined in `Core`, implemented in `Data`, wired by `GUI.WinForms`).
+
+```
+GUI.WinForms ──→ Services ──→ Communication ──→ Infrastructure ──→ Core
+       │                                                            ▲
+       └────→ Data ─────────────────────────────────────────────────┘
 ```
 
 ## Documentation
