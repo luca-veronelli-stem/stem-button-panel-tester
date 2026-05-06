@@ -34,6 +34,7 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="Moq" />
     <PackageReference Include="Peak.PCANBasic.NET" />
+    <PackageReference Include="WireMock.Net" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio">
       <PrivateAssets>all</PrivateAssets>
@@ -44,9 +45,11 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Communication\Communication.csproj" />
     <ProjectReference Include="..\..\src\Core\Core.csproj" />
+    <ProjectReference Include="..\..\src\Core.FSharp\Core.FSharp.fsproj" />
     <ProjectReference Include="..\..\src\Data\Data.csproj" />
     <ProjectReference Include="..\..\src\Infrastructure\Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Services\Services.csproj" />
+    <ProjectReference Include="..\..\src\Services.FSharp\Services.FSharp.fsproj" />
   </ItemGroup>
 
   <ItemGroup>

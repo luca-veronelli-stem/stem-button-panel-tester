@@ -35,8 +35,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\\Core\\Core.csproj" />
+    <ProjectReference Include="..\\Core.FSharp\\Core.FSharp.fsproj" />
     <ProjectReference Include="..\\Data\\Data.csproj" />
     <ProjectReference Include="..\\Services\\Services.csproj" />
+    <ProjectReference Include="..\\Services.FSharp\\Services.FSharp.fsproj" />
     <ProjectReference Include="..\\Communication\\Communication.csproj" />
     <ProjectReference Include="..\\Infrastructure\\Infrastructure.csproj" />
   </ItemGroup>

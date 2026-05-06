@@ -24,15 +24,15 @@ description: "Task list for feature implementation"
 
 **Purpose**: scaffolding shared by all user stories. New F# projects, new directories, NuGet wiring. No production code yet.
 
-- [ ] T001 [Setup] Create `src/Core.FSharp/Core.FSharp.fsproj` (Phase 2 beachhead). Inherit from `Directory.Build.props`. Target `net10.0`. No project references (Core is the deps-free layer). Add to `Stem.ButtonPanel.Tester.slnx` under the `src` folder.
-- [ ] T002 [Setup] Create `src/Services.FSharp/Services.FSharp.fsproj` (Phase 3 beachhead). Inherit from `Directory.Build.props`. Project references: `Core`, `Core.FSharp`, `Communication`. Add to `.slnx`.
-- [ ] T003 [Setup] Add `Core.FSharp` as a project reference from `Infrastructure.csproj`, `Services.FSharp.fsproj`, `GUI.WinForms.csproj`, and `tests/Tests/Tests.csproj`.
-- [ ] T004 [Setup] Add `Services.FSharp` as a project reference from `GUI.WinForms.csproj` and `tests/Tests/Tests.csproj`.
-- [ ] T005 [P] [Setup] Add `WireMock.Net` (test-only NuGet) to `Directory.Packages.proj` (CPM) and reference from `tests/Tests/Tests.csproj`. Pin a recent stable version.
-- [ ] T006 [P] [Setup] Add `System.Security.Cryptography.ProtectedData` (runtime NuGet) to `Directory.Packages.proj` and reference from `Infrastructure.csproj`.
-- [ ] T007 [P] [Setup] Create directory `src/Infrastructure/Dictionary/` with a placeholder `_Readme.md` so Git tracks it.
-- [ ] T008 [P] [Setup] Create test directory tree under `tests/Tests/`: `Core/Dictionary/`, `Infrastructure/Dictionary/`, `Services/Dictionary/`, `Integration/Dictionary/`. Placeholder `_Readme.md` per directory.
-- [ ] T009 [Setup] Update CLAUDE.md "Active migrations" to mark Phase 2/3 as `[~] partial-active`. **Note**: this edit is already in the in-flight commit that lands plan.md; T009 verifies it landed correctly and is consistent with the new project structure.
+- [X] T001 [Setup] Create `src/Core.FSharp/Core.FSharp.fsproj` (Phase 2 beachhead). Inherit from `Directory.Build.props`. Target `net10.0`. No project references (Core is the deps-free layer). Add to `Stem.ButtonPanel.Tester.slnx` under the `src` folder.
+- [X] T002 [Setup] Create `src/Services.FSharp/Services.FSharp.fsproj` (Phase 3 beachhead). Inherit from `Directory.Build.props`. Project references: `Core`, `Core.FSharp`, `Communication`. Add to `.slnx`.
+- [X] T003 [Setup] Add `Core.FSharp` as a project reference from `Infrastructure.csproj`, `Services.FSharp.fsproj`, `GUI.WinForms.csproj`, and `tests/Tests/Tests.csproj`.
+- [X] T004 [Setup] Add `Services.FSharp` as a project reference from `GUI.WinForms.csproj` and `tests/Tests/Tests.csproj`.
+- [X] T005 [P] [Setup] Add `WireMock.Net` (test-only NuGet) to `Directory.Packages.proj` (CPM) and reference from `tests/Tests/Tests.csproj`. Pin a recent stable version.
+- [X] T006 [P] [Setup] Add `System.Security.Cryptography.ProtectedData` (runtime NuGet) to `Directory.Packages.proj` and reference from `Infrastructure.csproj`.
+- [X] T007 [P] [Setup] Create directory `src/Infrastructure/Dictionary/` with a placeholder `_Readme.md` so Git tracks it.
+- [X] T008 [P] [Setup] Create test directory tree under `tests/Tests/`: `Core/Dictionary/`, `Infrastructure/Dictionary/`, `Services/Dictionary/`, `Integration/Dictionary/`. Placeholder `_Readme.md` per directory.
+- [X] T009 [Setup] Update CLAUDE.md "Active migrations" to mark Phase 2/3 as `[~] partial-active`. **Note**: this edit is already in the in-flight commit that lands plan.md; T009 verifies it landed correctly and is consistent with the new project structure.
 
 **Checkpoint**: solution builds with two empty new F# projects and one empty Dictionary namespace in Infrastructure. CI green.
 
@@ -48,20 +48,20 @@ description: "Task list for feature implementation"
 
 > Write these tests FIRST. All host-only on CI (no DPAPI yet at this layer).
 
-- [ ] T010 [P] [Foundational] Property test: `Installation` records with the same `(MachineName, UserSid, InstallationId)` are equal under F# `=`; differing `InstallationId` makes records unequal under full equality but the boundary helper `installationsMatch` (used by `DpapiCredentialStore.GetInstallationAsync`) returns true on `(MachineName, UserSid)` match alone. File: `tests/Tests/Core/Dictionary/InstallationTests.fs` (xUnit + FsCheck).
-- [ ] T011 [P] [Foundational] Test: `DictionaryFetchResult` exhaustive pattern match over all `FetchFailureReason` values compiles without warnings; a deliberate "missing case" stub triggers FS0025 at compile time. File: `tests/Tests/Core/Dictionary/DictionaryFetchResultTests.fs`.
-- [ ] T012 [P] [Foundational] Test: `DictionarySource` state-transition invariants per [data-model.md](./data-model.md): `Live → Live` on successful refresh, `Cached → Live` on successful refresh, refresh failure while Live keeps the existing `Live` (does not regress to `Cached` mid-session). File: `tests/Tests/Core/Dictionary/DictionarySourceTests.fs`.
+- [X] T010 [P] [Foundational] Property test: `Installation` records with the same `(MachineName, UserSid, InstallationId)` are equal under F# `=`; differing `InstallationId` makes records unequal under full equality but the boundary helper `installationsMatch` (used by `DpapiCredentialStore.GetInstallationAsync`) returns true on `(MachineName, UserSid)` match alone. File: `tests/Tests/Core/Dictionary/InstallationTests.fs` (xUnit + FsCheck).
+- [X] T011 [P] [Foundational] Test: `DictionaryFetchResult` exhaustive pattern match over all `FetchFailureReason` values compiles without warnings; a deliberate "missing case" stub triggers FS0025 at compile time. File: `tests/Tests/Core/Dictionary/DictionaryFetchResultTests.fs`.
+- [X] T012 [P] [Foundational] Test: `DictionarySource` state-transition invariants per [data-model.md](./data-model.md): `Live → Live` on successful refresh, `Cached → Live` on successful refresh, refresh failure while Live keeps the existing `Live` (does not regress to `Cached` mid-session). File: `tests/Tests/Core/Dictionary/DictionarySourceTests.fs`.
 
 ### Implementation for Foundational
 
-- [ ] T015 [Foundational] Implement `FetchFailureReason` DU in `src/Core.FSharp/Dictionary/FetchFailureReason.fs` per data-model.md. 8 variants, no payloads.
-- [ ] T016 [Foundational] Implement `DictionaryFetchResult` DU in `src/Core.FSharp/Dictionary/DictionaryFetchResult.fs`. Variants `Success of ButtonPanelDictionary * DateTimeOffset` and `Failed of FetchFailureReason * string option`. (Depends on T015 for `FetchFailureReason`.)
-- [ ] T017 [Foundational] Implement `DictionarySource` DU in `src/Core.FSharp/Dictionary/DictionarySource.fs`. Variants `Live of DateTimeOffset` and `Cached of DateTimeOffset * FetchFailureReason`. (Depends on T015.)
-- [ ] T018 [Foundational] Implement `Installation` record in `src/Core.FSharp/Dictionary/Installation.fs` with `MachineName: string`, `UserSid: string`, `InstallationId: Guid`. Add `installationsMatch` helper that compares only `(MachineName, UserSid)` per CHK011/data-model.md.
-- [ ] T019 [Foundational] Implement `CredentialLifecycleState` DU in `src/Core.FSharp/Dictionary/CredentialLifecycleState.fs`. 5 variants per FR-011e.
-- [ ] T020 [Foundational] Define `IDictionaryProvider` interface in `src/Core.FSharp/Dictionary/IDictionaryProvider.fs` per data-model.md. Single member: `FetchAsync: CancellationToken -> Task<DictionaryFetchResult>`.
-- [ ] T021 [Foundational] Define `IInstallationCredentialStore` interface in `src/Core.FSharp/Dictionary/IInstallationCredentialStore.fs`. Members: `GetApiKeyAsync`, `SetApiKeyAsync`, `ClearAsync`, `GetInstallationAsync`. ValueOption return types per data-model.md.
-- [ ] T022 [Foundational] Add C# `DictionaryApiOptions` in `src/Infrastructure/Dictionary/DictionaryApiOptions.cs`. Fields: `BaseUrl: Uri`, `MajorVersion: string` (default `"v1"`), `Timeout: TimeSpan` (default 5s per FR-012). Add `IValidateOptions<DictionaryApiOptions>` validator: BaseUrl must be absolute HTTPS, MajorVersion must match `^v\d+$`, Timeout must be > 0 and ≤ 30s. (Kept C# because `IOptions<T>` validators are friendlier in C#.)
+- [X] T015 [Foundational] Implement `FetchFailureReason` DU in `src/Core.FSharp/Dictionary/FetchFailureReason.fs` per data-model.md. 8 variants, no payloads.
+- [X] T016 [Foundational] Implement `DictionaryFetchResult` DU in `src/Core.FSharp/Dictionary/DictionaryFetchResult.fs`. Variants `Success of ButtonPanelDictionary * DateTimeOffset` and `Failed of FetchFailureReason * string option`. (Depends on T015 for `FetchFailureReason`.)
+- [X] T017 [Foundational] Implement `DictionarySource` DU in `src/Core.FSharp/Dictionary/DictionarySource.fs`. Variants `Live of DateTimeOffset` and `Cached of DateTimeOffset * FetchFailureReason`. (Depends on T015.)
+- [X] T018 [Foundational] Implement `Installation` record in `src/Core.FSharp/Dictionary/Installation.fs` with `MachineName: string`, `UserSid: string`, `InstallationId: Guid`. Add `installationsMatch` helper that compares only `(MachineName, UserSid)` per CHK011/data-model.md.
+- [X] T019 [Foundational] Implement `CredentialLifecycleState` DU in `src/Core.FSharp/Dictionary/CredentialLifecycleState.fs`. 5 variants per FR-011e.
+- [X] T020 [Foundational] Define `IDictionaryProvider` interface in `src/Core.FSharp/Dictionary/IDictionaryProvider.fs` per data-model.md. Single member: `FetchAsync: CancellationToken -> Task<DictionaryFetchResult>`.
+- [X] T021 [Foundational] Define `IInstallationCredentialStore` interface in `src/Core.FSharp/Dictionary/IInstallationCredentialStore.fs`. Members: `GetApiKeyAsync`, `SetApiKeyAsync`, `ClearAsync`, `GetInstallationAsync`. ValueOption return types per data-model.md.
+- [X] T022 [Foundational] Add C# `DictionaryApiOptions` in `src/Infrastructure/Dictionary/DictionaryApiOptions.cs`. Fields: `BaseUrl: Uri`, `MajorVersion: string` (default `"v1"`), `Timeout: TimeSpan` (default 5s per FR-012). Add `IValidateOptions<DictionaryApiOptions>` validator: BaseUrl must be absolute HTTPS, MajorVersion must match `^v\d+$`, Timeout must be > 0 and ≤ 30s. (Kept C# because `IOptions<T>` validators are friendlier in C#.)
 
 **Checkpoint**: Foundation ready. F# domain types compile, tests T010-T012 pass. User story implementation can now begin in parallel.
 

@@ -11,6 +11,9 @@
   -->
 
   <ItemGroup>
+    <!-- F# runtime — pin to .NET 10 SDK's bundled version to avoid FsCheck pulling 5.0 -->
+    <PackageVersion Include="FSharp.Core" Version="10.1.201" />
+
     <!-- Source generators / analyzers -->
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
 
@@ -48,6 +51,10 @@
     <!-- Test infrastructure (repo-specific) -->
     <PackageVersion Include="coverlet.collector" Version="10.0.0" />
     <PackageVersion Include="Moq" Version="4.20.72" />
+    <PackageVersion Include="WireMock.Net" Version="2.5.0" />
+
+    <!-- Per-installation credential store (Windows DPAPI) -->
+    <PackageVersion Include="System.Security.Cryptography.ProtectedData" Version="9.0.1" />
 
     <!-- Driver-only (Windows TFM, see PORTABILITY Pattern A) -->
     <PackageVersion Include="System.IO.Ports" Version="10.0.1" />
