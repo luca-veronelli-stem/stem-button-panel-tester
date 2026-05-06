@@ -142,6 +142,33 @@ Each research item resolves a HOW question that the spec deferred to plan, or a 
 
 ---
 
+---
+
+## R-11 — F# adoption for new Core/Services types (Phase 2/3 partial-activation)
+
+**Decision**: This feature **activates Phase 2 (Core → F#) and Phase 3 (Services → F#) in partial-active mode** per the user's directive that "this feature (and all subsequents) walks hand in hand with the MIGRATION plan." New Core types live in a new sibling project `src/Core.FSharp/`; the new `DictionaryService` orchestrator lives in `src/Services.FSharp/`. Existing C# code in `src/Core/` and `src/Services/` is untouched by this PR — separate Phase 2/3 PRs port C# types into the F# siblings as features touch them.
+
+**Rationale**: 
+1. **Standards adherence**. The `LANGUAGE` standard makes F# the default; CLAUDE.md tracks the C#-everywhere state as a deviation pending Phase 2/3. Adding new C# code now means writing-then-rewriting when migration formally begins. F# from the start avoids that double-spend.
+2. **F# fits the domain.** `DictionaryFetchResult`, `DictionarySource`, `FetchFailureReason`, `CredentialLifecycleState` are textbook discriminated unions — awkward in C# (sealed class hierarchies, OneOf libraries) and natural in F#. Exhaustive matching closes a class of "forgot to handle the new variant" bugs that a C# enum + switch wouldn't.
+3. **Constitution VI is preserved.** The "no hybrid layers inside one project" rule is honoured because `Core` and `Core.FSharp` are distinct compilation units; each project is mono-language. The hybrid is at the *layer* level (the Core layer now has both C# and F# code), which Constitution VI does not forbid — only intra-project mixing is forbidden. Sibling-project pattern is mechanically clean.
+4. **Sets precedent for subsequent features**. The user explicitly said "all subsequents" walk with migration — meaning the next dozen features each add a few F# types or services. The sibling-project pattern absorbs that incremental work without churn. When Phases 2 and 3 reach completion (the C# `Core` and `Services` projects empty out), we delete those projects and rename the F# siblings.
+
+**Alternatives considered**:
+- *Stay all-C# for v1, do "F# preparation" by writing F#-friendly C# (records with `init`, sealed hierarchies).* Rejected: doesn't actually start the migration, just postpones it. Each subsequent feature would have to make this same call and the answer is the same — start now.
+- *Rewrite all of `Core` to F# in this PR.* Rejected: massive scope creep, blocks the dictionary feature on a project-wide port. The whole point of Phase 2 being incremental is to avoid this.
+- *Mix `.cs` and `.fs` files inside `Core.csproj` (multi-language project).* MSBuild supports it but Constitution VI forbids it ("hybrid layers inside one project"). And toolchain-wise it confuses IDEs and IL-merging. Rejected.
+- *F# for Core but keep DictionaryService in C# for v1.* Considered. Rejected because Services is on Phase 3's path; the same logic that justifies F# in Core justifies it in the orchestrator. If we draw the line at Core, the next feature has to redraw it.
+
+**What this means for downstream features**:
+- New Core types → `Core.FSharp`. New Services orchestrators → `Services.FSharp`.
+- Existing types that need to *change* — case-by-case: small clean-up edits stay in the C# project; a non-trivial rewrite migrates the type to the F# sibling and removes it from C# as a single PR (so the type doesn't exist twice). This keeps Phase 2/3 progress visible in the diff.
+- Infrastructure stays C# (no migration phase covers it). GUI stays C#/WinForms (Phase 4 is Avalonia, separately gated and a much larger architectural shift; not implied by this directive).
+
+**Update propagation**: CLAUDE.md "Active migrations" updated in the same PR; Phase 2/3 transition from `[ ] not yet scheduled` to `[~] partial-active` with the beachhead PR reference. The constitution itself does NOT change — Principle VI's wording already accommodates active-migration partial states.
+
+---
+
 ## Open follow-ups (non-blocking)
 
 These came up during research but don't block plan completion. Captured for `/speckit-tasks` or post-implementation:

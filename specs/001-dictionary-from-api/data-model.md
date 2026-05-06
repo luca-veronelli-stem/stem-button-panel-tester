@@ -4,7 +4,7 @@
 **Date**: 2026-05-06
 **Spec**: [spec.md](./spec.md) | **Plan**: [plan.md](./plan.md)
 
-This document specifies the entities, fields, relationships, validation rules, and state transitions introduced by this feature. Implementation lives under `Core/Dictionary/` (interfaces + entities) and `Infrastructure/Dictionary/` (on-disk envelope).
+This document specifies the entities, fields, relationships, validation rules, and state transitions introduced by this feature. Implementation lives under `src/Core.FSharp/Dictionary/` (F# domain types and interfaces — Phase 2 beachhead) and `src/Infrastructure/Dictionary/` (C# implementations and the on-disk envelope DTO). F# discriminated unions and records are the natural expression for the polymorphic and immutable shapes below; the C# layers consume them via standard CLR interop (DUs surface as sealed class hierarchies, records as immutable classes with structural equality).
 
 ## Entities
 
@@ -14,16 +14,34 @@ Domain type representing the loaded dictionary. **Shape unchanged by this featur
 
 Implementation note: confirm during `/speckit-tasks` that the existing `ButtonPanelDictionary` in `Core` doesn't depend on Excel-specific types (it shouldn't, but verify — issue #21 explicitly tracks purging `System.Drawing` and WinForms types from Core contracts).
 
-### `DictionaryFetchResult` (new, in `Core/Dictionary/`)
+### `DictionaryFetchResult` (new, in `Core.FSharp/Dictionary/`)
 
-Sealed class hierarchy (or record polymorphism) representing the outcome of a single fetch attempt — what `HttpDictionaryClient` and `JsonFileDictionaryCache` both return. Discriminated union shape (C# 13 sealed class hierarchy):
+F# discriminated union representing the outcome of a single fetch attempt — what `HttpDictionaryClient` and `JsonFileDictionaryCache` both return. The DU shape gives exhaustive matching at compile time, which closes a class of bugs (forgetting to handle a new failure reason) that a C# enum + switch would not.
+
+```fsharp
+type DictionaryFetchResult =
+    | Success of Dictionary: ButtonPanelDictionary * FetchedAt: DateTimeOffset
+    | Failed  of Reason: FetchFailureReason * Detail: string option
+```
 
 | Variant | Fields | Meaning |
 |---|---|---|
-| `Success` | `ButtonPanelDictionary Dictionary`, `DateTimeOffset FetchedAt` | A valid dictionary was obtained. `FetchedAt` is the wall-clock time when the response completed (for live) or when the cache was originally written (for cache). |
-| `Failed` | `FetchFailureReason Reason`, `string? Detail` | The fetch did not yield a dictionary. `Reason` is the discriminator. |
+| `Success` | `Dictionary: ButtonPanelDictionary`, `FetchedAt: DateTimeOffset` | A valid dictionary was obtained. `FetchedAt` is the wall-clock time when the response completed (for live) or when the cache was originally written (for cache). |
+| `Failed` | `Reason: FetchFailureReason`, `Detail: string option` | The fetch did not yield a dictionary. `Reason` is the discriminator; `Detail` is an optional human-readable elaboration for logging. |
 
-`FetchFailureReason` enum:
+`FetchFailureReason` (F# DU, no payload):
+
+```fsharp
+type FetchFailureReason =
+    | NetworkUnreachable
+    | Timeout
+    | Unauthorized
+    | MalformedPayload
+    | ServerError
+    | CacheAbsent
+    | CacheUnreadable
+    | SetupIncomplete
+```
 
 | Value | When |
 |---|---|
@@ -36,14 +54,20 @@ Sealed class hierarchy (or record polymorphism) representing the outcome of a si
 | `CacheUnreadable` | Cache provider only — file exists but is unreadable (corruption, schema drift; FR-010). |
 | `SetupIncomplete` | First-launch path: no credential available because bootstrap/installer-bundle has not yet succeeded. Triggers FR-011d handling. |
 
-### `DictionarySource` (new, in `Core/Dictionary/`)
+### `DictionarySource` (new, in `Core.FSharp/Dictionary/`)
 
-Sealed class hierarchy representing the origin of the **active** in-memory dictionary. Drives FR-005's UI indicator.
+F# discriminated union representing the origin of the **active** in-memory dictionary. Drives FR-005's UI indicator. Exhaustive matching ensures the GUI's indicator code can't silently miss a state.
+
+```fsharp
+type DictionarySource =
+    | Live   of FetchedAt: DateTimeOffset
+    | Cached of FetchedAt: DateTimeOffset * FallbackReason: FetchFailureReason
+```
 
 | Variant | Fields | Meaning |
 |---|---|---|
-| `Live` | `DateTimeOffset FetchedAt` | The active dictionary came from a successful API fetch in this session. |
-| `Cached` | `DateTimeOffset FetchedAt`, `FetchFailureReason FallbackReason` | The active dictionary came from the cache because the live fetch failed. `FallbackReason` carries the why so FR-014 logging and FR-005 UI can distinguish "API down" from "credential issue" (CHK017 resolution). |
+| `Live` | `FetchedAt: DateTimeOffset` | The active dictionary came from a successful API fetch in this session. |
+| `Cached` | `FetchedAt: DateTimeOffset`, `FallbackReason: FetchFailureReason` | The active dictionary came from the cache because the live fetch failed. `FallbackReason` carries the why so FR-014 logging and FR-005 UI can distinguish "API down" from "credential issue" (CHK017 resolution). |
 
 State transitions (managed by `DictionaryService`):
 
@@ -85,60 +109,59 @@ Fields:
 
 **Schema drift handling** (FR-010): on read, any of {file missing, deserialization fails, `schema_version` unknown, required field missing, `dictionary` payload doesn't satisfy domain validation} returns `FetchFailureReason.CacheUnreadable` and the file is left in place (not deleted — leaving it lets a developer inspect what went wrong; the next successful fetch overwrites it).
 
-### `Installation` (new, in `Core/Dictionary/`)
+### `Installation` (new, in `Core.FSharp/Dictionary/`)
 
-Identity unit. Per CHK011 resolution, an Installation is one Windows user account on one workstation. Used as the scope key for both the dictionary cache (FR-013) and the credential (FR-011 family).
+Identity unit. Per CHK011 resolution, an Installation is one Windows user account on one workstation. Used as the scope key for both the dictionary cache (FR-013) and the credential (FR-011 family). F# record — structural equality is automatic.
 
-Fields:
-- `string MachineName` — `Environment.MachineName` at provisioning time.
-- `string UserSid` — current Windows user's SID (`WindowsIdentity.GetCurrent().User.Value`).
-- `Guid InstallationId` — generated at first run; persisted in DPAPI alongside the credential. The `installation_descriptor` sent to `stem-dictionaries-manager` if/when bootstrap-exchange is adopted (R-1 follow-up).
-
-Equality: structural on (`MachineName`, `UserSid`). `InstallationId` is identity-bearing only for the server's records; locally it's just metadata.
-
-### `CredentialLifecycleState` (new, in `Core/Dictionary/`)
-
-Enum mirroring FR-011e:
-
-```csharp
-public enum CredentialLifecycleState
-{
-    Provisioned,  // just unwrapped from installer-bundle (R-1 path) or returned by /register (future)
-    Active,       // post-first-successful-API-call validation
-    Rotated,      // server-side replaced (with grace window) — runtime-equivalent to Revoked
-    Revoked,      // server-side invalidated, immediate
-    Expired       // validity period exceeded — only meaningful if server policy uses time-bounded keys
+```fsharp
+type Installation = {
+    MachineName: string        // Environment.MachineName at provisioning time
+    UserSid: string             // WindowsIdentity.GetCurrent().User.Value
+    InstallationId: Guid        // generated at first run; persisted in DPAPI alongside the credential
 }
 ```
 
-The client only ever observes `Provisioned`, `Active`, or "needs re-provisioning" (collapsing `Rotated`/`Revoked`/`Expired` together — they all surface as `FetchFailureReason.Unauthorized` per FR-011f). The enum exists in `Core` so server-side and operational discussions have shared vocabulary, even though the client's branching is binary.
+Equality: F# records are structurally equal on all fields by default. The CHK011 contract requires equality on `(MachineName, UserSid)` while `InstallationId` is metadata. To express this precisely, the comparison helper used at the credential-store boundary (in `DpapiCredentialStore.GetInstallationAsync`'s mismatch detection) compares only `(MachineName, UserSid)`; the F# `=` operator on the full record stays available for tests that want full equality. The `InstallationId` is identity-bearing only for the server's records (the `installation_descriptor` sent to `stem-dictionaries-manager` if/when bootstrap-exchange is adopted, R-1 follow-up).
+
+### `CredentialLifecycleState` (new, in `Core.FSharp/Dictionary/`)
+
+F# discriminated union mirroring FR-011e. A DU is more idiomatic than an enum here because future variants might carry data (e.g. `Expired of expiredAt: DateTimeOffset`) and the DU representation makes that future-safe.
+
+```fsharp
+type CredentialLifecycleState =
+    | Provisioned    // just unwrapped from installer-bundle (R-1 path) or returned by /register (future)
+    | Active         // post-first-successful-API-call validation
+    | Rotated        // server-side replaced (with grace window) — runtime-equivalent to Revoked
+    | Revoked        // server-side invalidated, immediate
+    | Expired        // validity period exceeded — only meaningful if server policy uses time-bounded keys
+```
+
+The client only ever observes `Provisioned`, `Active`, or "needs re-provisioning" (collapsing `Rotated`/`Revoked`/`Expired` together — they all surface as `FetchFailureReason.Unauthorized` per FR-011f). The DU exists in `Core.FSharp` so server-side and operational discussions have shared vocabulary, even though the client's branching is binary.
 
 ## Interfaces
 
-### `IDictionaryProvider` (`Core/Dictionary/IDictionaryProvider.cs`)
+### `IDictionaryProvider` (`Core.FSharp/Dictionary/IDictionaryProvider.fs`)
 
-```csharp
-public interface IDictionaryProvider
-{
-    Task<DictionaryFetchResult> FetchAsync(CancellationToken ct);
-}
+```fsharp
+type IDictionaryProvider =
+    abstract FetchAsync: CancellationToken -> Task<DictionaryFetchResult>
 ```
 
-Two implementations: `HttpDictionaryClient` (live API) and `JsonFileDictionaryCache` (disk fallback). `DictionaryService` composes them. Both must be cancellable (Constitution I, `CANCELLATION` standard) — the cache implementation cancels mid-deserialization; the HTTP implementation cancels mid-flight.
+Two C# implementations consume this F# interface (CLR interop is transparent): `HttpDictionaryClient` (live API) and `JsonFileDictionaryCache` (disk fallback). The F# `DictionaryService` in `Services.FSharp` composes them. Both implementations must honour cancellation (Constitution I, `CANCELLATION` standard) — the cache implementation cancels mid-deserialization; the HTTP implementation cancels mid-flight.
 
-### `IInstallationCredentialStore` (`Core/Dictionary/IInstallationCredentialStore.cs`)
+### `IInstallationCredentialStore` (`Core.FSharp/Dictionary/IInstallationCredentialStore.fs`)
 
-```csharp
-public interface IInstallationCredentialStore
-{
-    Task<string?> GetApiKeyAsync(CancellationToken ct);   // null = no credential provisioned yet
-    Task SetApiKeyAsync(string apiKey, CancellationToken ct);
-    Task ClearAsync(CancellationToken ct);                // for re-provisioning after auth failure
-    Task<Installation?> GetInstallationAsync(CancellationToken ct);
-}
+```fsharp
+type IInstallationCredentialStore =
+    abstract GetApiKeyAsync: CancellationToken -> Task<string voption>          // ValueNone = no credential provisioned yet
+    abstract SetApiKeyAsync: apiKey: string * CancellationToken -> Task
+    abstract ClearAsync: CancellationToken -> Task                                // re-provisioning hook (FR-011f)
+    abstract GetInstallationAsync: CancellationToken -> Task<Installation voption>
 ```
 
-Single production implementation: `DpapiCredentialStore` in `Infrastructure/Dictionary/`. Manual fake for tests. `ClearAsync` is the FR-011f re-provisioning hook; on the next launch, the absence of a key triggers `FetchFailureReason.SetupIncomplete` and the bundle-unwrap (or future bootstrap-exchange) flow re-runs.
+Single C# production implementation: `DpapiCredentialStore` in `Infrastructure/Dictionary/`. F# manual fake for tests in the test project. `ClearAsync` is the FR-011f re-provisioning hook; on the next launch, an absent key triggers `FetchFailureReason.SetupIncomplete` and the bundle-unwrap (or future bootstrap-exchange) flow re-runs.
+
+**Interop note**: `string voption` and `Installation voption` (F# `ValueOption`) surface to C# as `Microsoft.FSharp.Core.FSharpValueOption<T>`. That's awkward in C# call sites, so the C# `DpapiCredentialStore` implementation will likely shadow these with explicit `?.HasValue`/`?.Value` patterns or use a thin C#-side adapter. Acceptable trade — F# domain types staying expressive matters more than C# infrastructure ergonomics.
 
 ## Validation rules (cross-cutting)
 

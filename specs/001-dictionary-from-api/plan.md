@@ -11,7 +11,7 @@ Replace the Excel-fed button panel dictionary with `stem-dictionaries-manager`'s
 
 ## Technical Context
 
-**Language/Version**: C# 13 / .NET 10. F# is reserved for Phase 2 (`Core`) and Phase 3 (`Services`) per CLAUDE.md "Active migrations"; both are unscheduled, so this feature ships C#.
+**Language/Version**: **C# 13 + F# 9** on .NET 10. This feature **activates Phase 2 (`Core` → F#) and Phase 3 (`Services` → F#) in partial-active mode**: new Core types and the new Services orchestrator are F# in sibling projects (`src/Core.FSharp/`, `src/Services.FSharp/`); existing C# in `src/Core/` and `src/Services/` migrates per future PRs. Constitution VI forbids `.cs`+`.fs` inside one project, hence the sibling-project pattern. Infrastructure (HTTP, file IO, DPAPI) stays C# — those layers are not on a migration phase.
 **Primary Dependencies**:
 - `System.Net.Http` (BCL) — HTTP client.
 - `System.Text.Json` (BCL) — JSON serialization for cache and API payloads.
@@ -50,7 +50,7 @@ No `Polly`. The spec's resilience contract (single 5s timeout per FR-012, no in-
 - **III. Test-First with Hardware Stratification.** Test seams: `IDictionaryProvider` (manual fake for orchestration tests), `IInstallationCredentialStore` (manual fake for HTTP-client tests so they don't need DPAPI). Host-only on CI: orchestration tests, JSON-cache tests, HTTP-client tests against `WireMock.Net`. **Windows-only, runs on the windows-latest CI leg only**: `DpapiCredentialStore` tests (`Category=WindowsOnly`). **No `Category=FlakyOnCi` tests** added — this feature does not touch Peak PCAN-USB. Tests are written before implementation per the upcoming `tasks.md` ordering.
 - **IV. Pragmatic .NET Defaults.** New interfaces: `IDictionaryProvider` (2 prod impls + 1 fake), `IInstallationCredentialStore` (1 prod + 1 fake; crosses unit-test boundary). Both earn their keep. No interface for `DictionaryService` (single implementation; if we later need to fake it for GUI tests, add then). No `Moq`. Composition root in `GUI.WinForms` only. ✅
 - **V. English by Default.** All new identifiers, comments, log messages, and the four new user-visible strings (FR-005 indicator label, FR-006 refresh button, FR-008 / FR-011d error messages) are English. No supplier-side request for Italian — if it surfaces later, treat as a localization pass against resource files.
-- **VI. Migration Discipline.** Phases 2/3/4 (F#, Avalonia) are not active per CLAUDE.md. This feature ships C# / WinForms end-to-end. The Excel removal (FR-009) is in-scope; the `src/Data` Excel project is either retained for test fixtures or removed entirely (R-7). No hybrid layer introduced.
+- **VI. Migration Discipline.** This feature is the beachhead for **Phase 2 (Core → F#) and Phase 3 (Services → F#)**, both transitioning from "not yet scheduled" to **partial-active**. CLAUDE.md "Active migrations" is updated in the same PR. New code: F# in `src/Core.FSharp/` and `src/Services.FSharp/`. Existing C# in `src/Core/` and `src/Services/` is unchanged — separate migration PRs port those types as features touch them. Constitution VI's "no hybrid inside one project" rule is preserved by the sibling-project pattern (`Core` ≠ `Core.FSharp` are distinct compilation units). Phase 4 (Avalonia) stays unscheduled; GUI ships WinForms. The Excel removal (FR-009) is in-scope per R-7. No hybrid layer introduced.
 
 **No principle violations. Constitution Check passes.**
 
@@ -77,33 +77,40 @@ specs/001-dictionary-from-api/
 
 ```text
 src/
-├── Core/                              (no project deps)
-│   └── Dictionary/                    NEW
-│       ├── IDictionaryProvider.cs
-│       ├── IInstallationCredentialStore.cs
-│       ├── DictionaryFetchResult.cs   (sealed class hierarchy: Success | Failed)
-│       ├── DictionarySource.cs        (sealed: Live | Cached(timestamp))
-│       ├── Installation.cs
-│       └── CredentialLifecycleState.cs (enum: Provisioned/Active/Rotated/Revoked/Expired)
+├── Core/                              EXISTING C# — unchanged by this feature; future Phase 2 PRs migrate types out
+├── Core.FSharp/                       NEW F# project (Phase 2 beachhead; deps: none)
+│   └── Dictionary/
+│       ├── IDictionaryProvider.fs              (interface: FetchAsync ct → Task<DictionaryFetchResult>)
+│       ├── IInstallationCredentialStore.fs     (interface: GetApiKeyAsync, SetApiKeyAsync, ClearAsync, GetInstallationAsync)
+│       ├── DictionaryFetchResult.fs            (DU: Success of ButtonPanelDictionary*DateTimeOffset | Failed of FetchFailureReason*string option)
+│       ├── FetchFailureReason.fs               (DU: NetworkUnreachable | Timeout | Unauthorized | MalformedPayload | ServerError | CacheAbsent | CacheUnreadable | SetupIncomplete)
+│       ├── DictionarySource.fs                 (DU: Live of DateTimeOffset | Cached of DateTimeOffset*FetchFailureReason)
+│       ├── Installation.fs                     (record: MachineName * UserSid * InstallationId)
+│       └── CredentialLifecycleState.fs         (DU: Provisioned | Active | Rotated | Revoked | Expired)
 │
-├── Infrastructure/                    (deps: Core)
+├── Infrastructure/                    EXISTING C# (deps: Core, Core.FSharp)
 │   └── Dictionary/                    NEW
 │       ├── HttpDictionaryClient.cs           : IDictionaryProvider
 │       ├── JsonFileDictionaryCache.cs        : IDictionaryProvider
 │       ├── DpapiCredentialStore.cs           : IInstallationCredentialStore (Windows-only)
-│       ├── DictionaryApiOptions.cs           (base URL, timeout 5s)
-│       └── DictionaryCacheEnvelope.cs        (on-disk schema: payload + fetched_at + schema_version)
+│       ├── DictionaryApiOptions.cs           (base URL, timeout 5s, MajorVersion="v1")
+│       ├── DictionaryCacheEnvelope.cs        (on-disk JSON schema; internal to JsonFileDictionaryCache)
+│       └── Dtos/DictionaryResponseDto.cs     (System.Text.Json DTO; mapped to F# domain types)
 │
 ├── Communication/                     UNCHANGED
-├── Data/                              EXISTING — Excel reader; runtime consumer removed; project either retained for test fixtures or removed entirely (R-7)
+├── Data/                              EXISTING C# — runtime consumer removed (FR-009); project retained for test fixtures per R-7
 │
-├── Services/                          (deps: Communication, Core)
-│   └── Dictionary/                    NEW
-│       └── DictionaryService.cs              (orchestrator: fetch-or-cache, holds DictionarySource state, exposes RefreshAsync())
+├── Services/                          EXISTING C# — unchanged; future Phase 3 PRs migrate out
+├── Services.FSharp/                   NEW F# project (Phase 3 beachhead; deps: Core, Core.FSharp, Communication)
+│   └── Dictionary/
+│       └── DictionaryService.fs                (orchestrator: fetch-or-cache, holds DictionarySource state,
+│                                                exposes RefreshAsync(ct), coalesces in-flight requests)
 │
-└── GUI.WinForms/                      (composition root)
+└── GUI.WinForms/                      EXISTING C# (composition root; deps: all of the above)
     ├── Composition/
-    │   └── ServiceComposition.cs             EDITED — wire IDictionaryProvider, IInstallationCredentialStore, DictionaryService
+    │   └── ServiceComposition.cs             EDITED — wire IDictionaryProvider (Http+Cache),
+    │                                          IInstallationCredentialStore (DPAPI), DictionaryService,
+    │                                          DictionaryApiOptions
     └── MainForm.cs                            EDITED — DictionarySource label, Refresh button (FR-005, FR-006)
 
 tests/Tests/
@@ -118,7 +125,7 @@ tests/Tests/
     └── DictionaryEndToEndTests.cs            (WireMock + filesystem; cold start, cache hit, fallback)
 ```
 
-**Structure Decision**: extend existing projects; no new top-level projects required. The new `Dictionary/` namespace appears in four projects (`Core`, `Infrastructure`, `Services`, plus tests) following the layered convention. The Excel-reading `src/Data` project's runtime consumer is removed (FR-009); the project itself either becomes test-fixture-only (zero references from `src/`) or is removed entirely depending on R-7's outcome.
+**Structure Decision**: introduce two new sibling F# projects (`Core.FSharp`, `Services.FSharp`) as Phase 2 / Phase 3 beachheads — this is the structural cost of activating those migrations. The new `Dictionary/` namespace lives in three layers (`Core.FSharp`, `Infrastructure`, `Services.FSharp`, plus tests) following the layered convention. Existing `Core` and `Services` C# projects are unchanged by this PR; future Phase 2/3 PRs port C# types into the F# siblings as features touch them. The Excel-reading `src/Data` project's runtime consumer is removed (FR-009); the project itself becomes test-fixture-only per R-7.
 
 ## Complexity Tracking
 
