@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Dictionary\FetchFailureReason.fs" />
+    <Compile Include="Dictionary\ButtonPanelDictionary.fs" />
+    <Compile Include="Dictionary\DictionaryFetchResult.fs" />
+    <Compile Include="Dictionary\DictionarySource.fs" />
+    <Compile Include="Dictionary\Installation.fs" />
+    <Compile Include="Dictionary\CredentialLifecycleState.fs" />
+    <Compile Include="Dictionary\IDictionaryProvider.fs" />
+    <Compile Include="Dictionary\IInstallationCredentialStore.fs" />
+  </ItemGroup>
+
+</Project>

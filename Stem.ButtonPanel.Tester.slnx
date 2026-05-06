@@ -14,9 +14,12 @@
   </Folder>
   <Project Path="src/Communication/Communication.csproj" />
   <Project Path="src/Core/Core.csproj" />
+  <Project Path="src/Core.FSharp/Core.FSharp.fsproj" />
   <Project Path="src/Data/Data.csproj" />
   <Project Path="src/GUI.WinForms/GUI.WinForms.csproj" />
   <Project Path="src/Infrastructure/Infrastructure.csproj" />
   <Project Path="src/Services/Services.csproj" />
+  <Project Path="src/Services.FSharp/Services.FSharp.fsproj" />
   <Project Path="tests/Tests/Tests.csproj" />
+  <Project Path="tests/Tests.FSharp/Tests.FSharp.fsproj" />
 </Solution>
