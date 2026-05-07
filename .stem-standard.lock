@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "writtenAt": "2026-05-07T06:25:38.7911926Z",
-  "standardVersion": "v1.3.1",
+  "writtenAt": "2026-05-07T06:49:27.5667640Z",
+  "standardVersion": "v1.3.2",
   "files": {
     ".editorconfig": "173392d33238156622cdc07b0b9dc1a8bc5ba46930835ba3b43aa072aafb8b09",
     ".gitattributes": "801affa65d49614d5642b237662ac2296300574c9ae0907296c24c08a3ac8ac1",
@@ -32,10 +32,10 @@
     "docs/Standards/EVENTARGS.md": "e6a4b802ae36afca4d862d4a768a016f09d94dd9fa7eca67bcbc9ff4dde0d94f",
     "docs/Standards/LANGUAGE.md": "f9fd0fee1fdb102950e9f96d33d78a7b540171e2b624ae76feeb37f34040cd45",
     "docs/Standards/LOGGING.md": "5e061356b169f1a049b7239cda711ffec481ad4c1cd7ce63b80d619856e3cea5",
-    "docs/Standards/MIGRATION.md": "fbe02a1b403c1dfd1b0c5dc41c99634ca172de0231a04175ddb9ab5638b4dc44",
+    "docs/Standards/MIGRATION.md": "7b3249716fe194def304c95151a37930d6cfad29b723470e980d2aa1e916dffd",
     "docs/Standards/MODULE_SEPARATION.md": "9387a045aab8979dce7e1f902f17f47b51d9a469429fbf35c04bccfc86e548ec",
     "docs/Standards/PORTABILITY.md": "d978317c0f8da9180bb72f5c95f18ff266f77d760301f34e4770657f44eb77bc",
-    "docs/Standards/README.md": "9e5d48677a402fef6971dcec5e6dcbb259c65adbfcfaf839ca4f433b9a4b7098",
+    "docs/Standards/README.md": "eb672f3a038af9537e3e02f03e03245237fc77a6b90a6cd5221625ef423a0388",
     "docs/Standards/REPO_STRUCTURE.md": "7893351a0c172efdab6ee2ec9a2e94309740763f704678f13247f96292c7a15d",
     "docs/Standards/TESTING.md": "b93cd89e97f54b216031bd97cb74981b2377186febfcbf898301512331a4b640",
     "docs/Standards/THREAD_SAFETY.md": "9937b13b8d022fb800bc0a923b56b798b058a93ad438c6b3c0bc61f0d079646b",
