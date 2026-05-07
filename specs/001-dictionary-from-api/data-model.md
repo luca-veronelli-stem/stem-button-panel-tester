@@ -121,7 +121,7 @@ type Installation = {
 }
 ```
 
-Equality: F# records are structurally equal on all fields by default. The CHK011 contract requires equality on `(MachineName, UserSid)` while `InstallationId` is metadata. To express this precisely, the comparison helper used at the credential-store boundary (in `DpapiCredentialStore.GetInstallationAsync`'s mismatch detection) compares only `(MachineName, UserSid)`; the F# `=` operator on the full record stays available for tests that want full equality. The `InstallationId` is identity-bearing only for the server's records (the `installation_descriptor` sent to `stem-dictionaries-manager` if/when bootstrap-exchange is adopted, R-1 follow-up).
+Equality: F# records are structurally equal on all fields by default. The CHK011 contract requires equality on `(MachineName, UserSid)` while `InstallationId` is metadata. To express this precisely, the comparison helper used at the credential-store boundary (in `DpapiCredentialStore.GetInstallationAsync`'s mismatch detection) compares only `(MachineName, UserSid)`; the F# `=` operator on the full record stays available for tests that want full equality. The `InstallationId` is identity-bearing only for the server's records — it surfaces on the wire as `descriptor.installGuid` in the bootstrap-exchange JSON body (`contracts/register-api.md`, R-1 follow-up). The on-wire `descriptor.machineId` and `descriptor.osUserId` are SHA-256 hashes of `MachineName` and `UserSid` respectively (resolved 2026-05-07 — see contract); the in-memory `Installation` record stays unhashed because the local equality semantics depend on the raw values.
 
 ### `CredentialLifecycleState` (new, in `Core.FSharp/Dictionary/`)
 
@@ -129,7 +129,7 @@ F# discriminated union mirroring FR-011e. A DU is more idiomatic than an enum he
 
 ```fsharp
 type CredentialLifecycleState =
-    | Provisioned    // just unwrapped from installer-bundle (R-1 path) or returned by /register (future)
+    | Provisioned    // just unwrapped from installer-bundle (R-1 path) or returned by POST /register (future, contracts/register-api.md)
     | Active         // post-first-successful-API-call validation
     | Rotated        // server-side replaced (with grace window) — runtime-equivalent to Revoked
     | Revoked        // server-side invalidated, immediate
