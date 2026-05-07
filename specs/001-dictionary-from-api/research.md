@@ -116,7 +116,7 @@ Each research item resolves a HOW question that the spec deferred to plan, or a 
 
 ## R-9 — API path versioning
 
-**Decision**: **Pin to `/v1/` major version path** (`https://<host>/v1/dictionary`, `https://<host>/v1/register`). Configure as `DictionaryApiOptions.MajorVersion = "v1"` so a future bump is config + code-aware, not a wholesale URL rewrite.
+**Decision**: **Pin to `/v1/` major version path** for the steady-state dictionary call (`https://<host>/v1/dictionary`). Configure as `DictionaryApiOptions.MajorVersion = "v1"` so a future bump is config + code-aware, not a wholesale URL rewrite. The bootstrap-exchange call is **unversioned** (`https://<host>/register`) per `stem-dictionaries-manager#1`'s authoritative spec — see `contracts/register-api.md`. The version-mismatch between the two paths is intentional on the server side and tracked separately.
 
 **Rationale**: Path-based versioning is the most discoverable, easiest to debug (URL alone tells you the contract version), and the most common convention in REST APIs. It survives any HTTP intermediary that strips headers. A breaking server-side change to `/v2/` is an explicit cutover rather than an implicit drift, which matches FR-010's "schema drift → fall back to cache" semantics: the v1 client gets a 404 from `/v2/dictionary` → fetch failure → cache fallback → log auth-distinct-from-network failure. Recovery is "ship a new client version pinned to `/v2/`".
 
