@@ -22,14 +22,20 @@ Templates live under `shared/templates/.github/workflows/` and are copied into e
 - **Caching:** `~/.nuget/packages/` keyed on `Directory.Packages.props`; Lean `~/.elan/` keyed on `lean-toolchain` (only when `specs/` exists).
 - **Steps:** checkout → setup-dotnet (from `global.json`) → restore → format check → build (Release) → test (Release).
 
-## Format check is a hard gate
+## Format check is a hard gate (whitespace-only in CI)
 
 ```yaml
-- name: Verify formatting
-  run: dotnet format --verify-no-changes
+- name: Verify formatting (whitespace)
+  run: dotnet format whitespace --verify-no-changes --no-restore
 ```
 
-Fails the run if any file would be changed by `dotnet format`. Husky.NET pre-commit (BUILD_CONFIG) catches this before push, but the CI step is the backstop.
+Whitespace-only on purpose. The full `dotnet format --verify-no-changes` fails on the GitHub-hosted runners with `CS0246` when C# files reference types from F# projects, even after a successful `dotnet build` — Roslyn's `MSBuildWorkspace` doesn't fully resolve cross-language refs during the analyzer phase on those images. The same command passes locally on the same SDK (10.0.203). Analyzer/style enforcement still happens via the build's `TreatWarningsAsErrors` (BUILD_CONFIG), so the whitespace check is sufficient at the CI formatting gate.
+
+Pure-C# or pure-F# repos don't strictly need the workaround, but the template uses `whitespace` everywhere for uniformity — analyzer enforcement still happens via build.
+
+Husky.NET pre-commit (BUILD_CONFIG) keeps running the full `dotnet format --verify-no-changes` locally, where the cross-language gap doesn't manifest. The CI step is the whitespace backstop.
+
+Revisit when .NET SDK 11 / Roslyn ship: if `MSBuildWorkspace` gains full cross-language resolution on the hosted runners, restore the full check here.
 
 ## TFM-conditional matrix legs
 

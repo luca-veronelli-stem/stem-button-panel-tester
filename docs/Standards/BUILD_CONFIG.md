@@ -117,12 +117,12 @@ The full file lives at `shared/templates/.editorconfig`. Highlights:
 ## Build invariants (CI enforces these)
 
 ```powershell
-dotnet format --verify-no-changes
-dotnet build  --configuration Release
-dotnet test   --configuration Release --no-build
+dotnet format whitespace --verify-no-changes --no-restore
+dotnet build             --configuration Release
+dotnet test              --configuration Release --no-build
 ```
 
-A green build means: code style is enforced, warnings are errors, all tests pass on both `ubuntu-latest` and `windows-latest`.
+A green build means: whitespace is clean, analyzer/style rules pass via `TreatWarningsAsErrors`, all tests pass on both `ubuntu-latest` and `windows-latest`. CI runs the whitespace-only variant of `dotnet format` — see CI.md → "Format check is a hard gate" for why.
 
 ## Husky.NET pre-commit hook
 
