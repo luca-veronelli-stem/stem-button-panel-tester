@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/license-Proprietary-red)](#license)
 
 > **Bench tool for testing STEM button-panel hardware over CAN.**
-> **Standard:** v1.3.1 — see [`docs/Standards/`](./docs/Standards/).
+> **Standard:** v1.3.2 — see [`docs/Standards/`](./docs/Standards/).
 
 ---
 
@@ -47,7 +47,7 @@ GUI.WinForms ──→ Services ──→ Communication ──→ Infrastructure
 
 ## Documentation
 
-- Standards followed: [`docs/Standards/`](./docs/Standards/) — pinned to `v1.3.1`.
+- Standards followed: [`docs/Standards/`](./docs/Standards/) — pinned to `v1.3.2`.
 - Changelog: [`CHANGELOG.md`](./CHANGELOG.md).
 - Repo-specific notes: [`CLAUDE.md`](./CLAUDE.md).
 

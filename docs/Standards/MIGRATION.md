@@ -109,4 +109,13 @@ If a bump regresses a repo, revert the PR and bump `**Standard version:**` back.
 
 ## Pitfalls
 
-- **Upgrading from a pre-`v1.3.1` lockfile.** Lockfiles written by the rollout script before `v1.3.1` had two gaps: standards files were keyed by bare filename instead of `docs/Standards/<NAME>.md`, and a number of common-template files (e.g. `CLAUDE.md`, `README.md`, `Directory.Packages.props`, `.github/workflows/*.yml`) were not always recorded. From `v1.3.1` onward, the script treats a missing lock entry on a file that exists on disk as locally-modified, so the **first** post-fix run on a pre-`v1.3.1` repo will skip those files with a `(local edit; pass -Force to overwrite)` warning. Inspect the diff manually, then re-run with `-Force` to opt in and seed the missing entries. Subsequent bumps work normally.
+- **Upgrading from a pre-`v1.3.1` lockfile.** Lockfiles written by the rollout script before `v1.3.1` had two gaps: standards files were keyed by bare filename instead of `docs/Standards/<NAME>.md`, and a number of common-template files (e.g. `CLAUDE.md`, `README.md`, `Directory.Packages.props`, `.github/workflows/*.yml`) were not always recorded. From `v1.3.1` onward, the script treats a missing lock entry on a file that exists on disk as locally-modified, so the **first** post-fix run on a pre-`v1.3.1` repo will skip those files with a `(local edit; pass -Force to overwrite)` warning. Inspect the diff manually before deciding which recipe applies:
+
+  - **Minor local divergence** (e.g. only standards files, or untouched templates) — re-run with `-Force` to seed the missing lock entries. Subsequent bumps work normally.
+  - **Substantive local divergence** — a blanket `-Force` would clobber repo-specific content back to template skeletons (the `stem-button-panel-tester` v1.2.1 → v1.3.1 bump hit this on `Directory.Packages.props`, both `.github/workflows/*.yml`, `CLAUDE.md`, and `README.md`). The seed-then-restore recipe:
+
+    1. Re-run `apply-repo-standard.ps1 -Force` to write template content and seed the lock with template hashes.
+    2. Immediately `git checkout HEAD -- <customised files>` to restore their pre-bump content (the lock keeps the template hashes).
+    3. Hand-bump version stamps where needed (`CLAUDE.md`'s `**Standard version:**` line; `README.md`'s `Standard version: vX.Y.Z` reference).
+
+    Result: `disk != lock` is now the desired permanent state. Future bumps auto-skip those files with the standard `(local edit; pass -Force to overwrite)` warning — no further manual lock surgery. Worked example: [`stem-button-panel-tester` PR #46](https://github.com/luca-veronelli-stem/stem-button-panel-tester/pull/46) shows the actual diff shape.

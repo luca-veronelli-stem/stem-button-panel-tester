@@ -1,6 +1,6 @@
-# STEM standards (Standard version: v1.3.1)
+# STEM standards (Standard version: v1.3.2)
 
-These are inline copies pinned to `v1.3.1`. Upstream source of truth is [llm-settings/shared/standards/](https://github.com/luca-veronelli-stem/llm-settings/tree/v1.3.1/shared/standards) (private repo).
+These are inline copies pinned to `v1.3.2`. Upstream source of truth is [llm-settings/shared/standards/](https://github.com/luca-veronelli-stem/llm-settings/tree/v1.3.2/shared/standards) (private repo).
 
 | Standard | Purpose |
 | --- | --- |
