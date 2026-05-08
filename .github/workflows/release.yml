@@ -17,6 +17,14 @@ jobs:
   release:
     name: Release ${{ github.ref_name }}
     runs-on: windows-latest
+    # Guard: only run the CI release flow when the supplier API key secret is
+    # configured. Otherwise the workflow would publish a no-key exe and the
+    # final 'Create GitHub Release' step would overwrite any release the
+    # operator created locally with a properly-keyed exe. When the secret
+    # isn't set, do the release locally:
+    #   gh release create v0.5.0 publish/win-x64/GUI.WinForms.exe \
+    #     --notes-file release-notes.md
+    if: ${{ vars.RELEASE_VIA_CI == 'true' || secrets.DICTIONARY_API_KEY != '' }}
 
     steps:
       - uses: actions/checkout@v6
