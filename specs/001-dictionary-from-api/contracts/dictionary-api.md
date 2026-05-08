@@ -1,29 +1,32 @@
-# Contract: `GET /v1/dictionary`
+# Contract: `GET /v1/dictionary` (design intent — superseded at runtime)
 
 **Direction**: this app **consumes** `stem-dictionaries-manager`'s API.
 **Stability**: required for v1.0 of `feat/001-dictionary-from-api`.
 **Counterparty**: `stem-dictionaries-manager` repository — must agree to the shape below or update this contract before the feature ships.
 
+> **⚠️ Stopgap — this contract is NOT what the runtime currently calls.**
+>
+> As of `feat/dictionary-api-key-config-stopgap` (2026-05-08) `HttpDictionaryClient`
+> talks to the existing `stem-dictionaries-manager` surface at
+> `GET /api/dictionaries/{DictionaryId}/resolved` with `X-Api-Key` auth, and
+> assembles a single-`PanelType` `ButtonPanelDictionary` from the response.
+> The endpoint, headers, and payload shape documented below are the **design
+> intent** retained for re-instatement, not the wire reality.
+>
+> Stopgap details, waivers, and the re-secure plan: [`docs/STOPGAP_API_KEY.md`](../../../docs/STOPGAP_API_KEY.md).
+
 This is the contract the `HttpDictionaryClient` codes against. Tests in `tests/Tests/Infrastructure/Dictionary/HttpDictionaryClientTests.cs` use `WireMock.Net` to stub responses matching this contract; any drift between this document and the real server response will surface as `FetchFailureReason.MalformedPayload` at runtime.
 
-## Endpoint
+## Endpoint (design intent)
 
 ```
 GET /v1/dictionary
 Host:          <DictionaryApiOptions.BaseUrl>
-X-Api-Key:     <api-key>
+Authorization: Bearer <api-key>
 Accept:        application/json
 ```
 
-The host and path major-version segment (`/v1/`) come from `DictionaryApiOptions`. The API key is fetched from `IInstallationCredentialStore.GetApiKeyAsync`.
-
-> **Stopgap.** As of `feat/dictionary-api-key-config-stopgap` (2026-05-08) the
-> wire-level credential is sent as `X-Api-Key` (was: `Authorization: Bearer
-> <api-key>`) to match the shared `stem-dictionaries-manager` deployment used
-> by `stem-device-manager`, and the API key is sourced from configuration
-> rather than a per-Installation DPAPI store. The original Bearer + per-
-> Installation contract from FR-011 + FR-011a-f is the design intent and is
-> tracked for re-instatement in [`docs/STOPGAP_API_KEY.md`](../../../docs/STOPGAP_API_KEY.md).
+The host and path major-version segment (`/v1/`) come from `DictionaryApiOptions`. The API key is fetched from `IInstallationCredentialStore.GetApiKeyAsync` and is the per-Installation credential per FR-011 + FR-011a-f.
 
 ## Success response — `200 OK`
 
