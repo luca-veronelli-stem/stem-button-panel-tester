@@ -130,24 +130,38 @@ type DictionaryService(
         //
         // Solution: register a TaskCompletionSource-backed task first, then
         // dispatch the actual work on the thread pool so it runs after the
-        // outer lock releases.
+        // outer lock releases. Critically, the worker must clear `inFlight`
+        // BEFORE signaling the TCS — otherwise a caller awaiting the task
+        // unblocks while `inFlight` still points at the just-completed task,
+        // and a follow-up `RefreshAsync` call from that caller silently
+        // re-uses the stale completed task instead of starting a fresh fetch.
         lock stateLock (fun () ->
             match inFlight with
             | ValueSome t -> t
             | ValueNone ->
-                let tcs = TaskCompletionSource<DictionaryStateUpdate>()
+                let tcs = TaskCompletionSource<DictionaryStateUpdate>(
+                            TaskCreationOptions.RunContinuationsAsynchronously)
                 inFlight <- ValueSome tcs.Task
                 let _ =
                     Task.Run(fun () ->
                         task {
+                            let mutable success : DictionaryStateUpdate voption = ValueNone
+                            let mutable failure : exn voption = ValueNone
                             try
-                                try
-                                    let! result = runRefresh ct
-                                    tcs.TrySetResult result |> ignore
-                                with
-                                | :? OperationCanceledException as oce -> tcs.TrySetCanceled oce.CancellationToken |> ignore
-                                | ex -> tcs.TrySetException ex |> ignore
-                            finally
-                                lock stateLock (fun () -> inFlight <- ValueNone)
+                                let! r = runRefresh ct
+                                success <- ValueSome r
+                            with ex ->
+                                failure <- ValueSome ex
+                            // Clear inFlight first, then signal the TCS. A caller
+                            // that awakens from .Wait() must observe inFlight = ValueNone
+                            // so that a follow-up RefreshAsync starts a fresh fetch
+                            // instead of receiving this same already-completed task.
+                            lock stateLock (fun () -> inFlight <- ValueNone)
+                            match success, failure with
+                            | ValueSome r, _ -> tcs.TrySetResult r |> ignore
+                            | _, ValueSome (:? OperationCanceledException as oce) ->
+                                tcs.TrySetCanceled oce.CancellationToken |> ignore
+                            | _, ValueSome ex -> tcs.TrySetException ex |> ignore
+                            | ValueNone, ValueNone -> ()  // unreachable
                         } :> Task)
                 tcs.Task)
