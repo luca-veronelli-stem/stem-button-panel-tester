@@ -75,19 +75,32 @@ namespace Services
             // baptize/reassign flow uses and works for both virgin and previously-baptized panels.
             ConfigureVirginPanelCommunication();
 
-            // MachineType=0xFF is the key: AA_Slave_WhoAreYouReceived writes Data.IdMachineType
-            // straight into EEPROM->IDMachineType, and AA_Slave_Init only enters AAS_STARTUP
-            // (the state in which the panel announces itself for auto-addressing) when
-            // IDMachineType==0xFF || IDBoardNumber==0xFF.
+            bool ok = await SendVirginWhoAreYouAsync(timeoutMs, cancellationToken).ConfigureAwait(false);
+            if (ok)
+            {
+                _logger.LogInformation("Virgin reset sent: panel EEPROM->IDMachineType=0xFF, AAS_ANSWER_TO_MASTER state expected.");
+            }
+            return ok;
+        }
+
+        /// <summary>
+        /// Sends a virgin WHO_ARE_YOU (machine=0xFF, fw=0x0004, reset=1) on the broadcast AA listen
+        /// ID and waits the standard reconfiguration delay. Used both by the public end-of-test
+        /// virgin reset and as the pre-clear step of a fresh baptism.
+        /// MachineType=0xFF is the key: AA_Slave_WhoAreYouReceived writes Data.IdMachineType
+        /// straight into EEPROM->IDMachineType and transitions to AAS_ANSWER_TO_MASTER, so the
+        /// panel re-announces itself with WHO_I_AM regardless of any prior baptism.
+        /// waitAnswer=false: the firmware doesn't synchronously reply with WHO_AM_I — its main
+        /// task broadcasts WHO_I_AM after a UUID-derived delay (up to ~4s). The CAN-level write
+        /// completing is sufficient confirmation that the handler ran.
+        /// </summary>
+        private async Task<bool> SendVirginWhoAreYouAsync(int timeoutMs, CancellationToken cancellationToken)
+        {
             byte[] payload = PayloadBuilder.BuildWhoAreYouPayload(
                 ProtocolConstants.VirginMachineType,
                 ProtocolConstants.PanelFirmwareType,
                 ProtocolConstants.ResetAddressFlag);
 
-            // waitAnswer=false: the panel doesn't synchronously reply with WHO_AM_I. Its main
-            // task starts broadcasting WHO_I_AM only after a UUID-derived delay (up to ~4s),
-            // which would slow every test-end. The CAN-level write completing is sufficient
-            // confirmation that the firmware ran the handler and flagged the EEPROM dirty.
             Result<byte[]> result = await _communicationService.SendCommandAsync(
                 ProtocolConstants.CMD_WHO_ARE_YOU,
                 payload,
@@ -97,15 +110,13 @@ namespace Services
 
             if (!result.IsSuccess)
             {
-                _logger.LogWarning("Failed to send virgin reset WHO_ARE_YOU: {Error}", result.Error);
+                _logger.LogWarning("Failed to send virgin WHO_ARE_YOU: {Error}", result.Error);
                 return false;
             }
 
             // Give the firmware time to commit EEPROM (UpdateEEPROM flag is consumed in its
-            // main loop, not synchronously inside the handler).
+            // main loop, not synchronously inside the handler) and flip into AAS_ANSWER_TO_MASTER.
             await Task.Delay(ProtocolConstants.DeviceReconfigurationDelayMs, cancellationToken).ConfigureAwait(false);
-
-            _logger.LogInformation("Virgin reset sent: panel EEPROM->IDMachineType=0xFF, AAS_ANSWER_TO_MASTER state expected.");
             return true;
         }
 
@@ -135,10 +146,20 @@ namespace Services
                 // 2. Configura comunicazione per pulsantiera vergine (0x1FFFFFFF)
                 ConfigureVirginPanelCommunication();
 
-                // 3. Ottieni configurazione per il tipo di pannello
+                // 3. Pre-clear into AAS state. Required for panels previously baptized to a
+                // different machine_type — they boot into AAS_STAND_BY rather than AAS_STARTUP,
+                // and the colored WHO_ARE_YOU alone can take 20+ s to be processed (busy AA
+                // task queue while normal-operation status traffic is in flight). Sending a
+                // virgin (machine=0xFF, reset=1) WHO_ARE_YOU first forces the firmware through
+                // AA_Slave_WhoAreYouReceived -> AAS_ANSWER_TO_MASTER. After ~500 ms settle, the
+                // colored request lands on a panel that's already in AAS state, predictable.
+                _logger.LogInformation("Pre-clear: sending virgin WHO_ARE_YOU before colored baptism.");
+                await SendVirginWhoAreYouAsync(timeoutMs, cancellationToken).ConfigureAwait(false);
+
+                // 4. Ottieni configurazione per il tipo di pannello
                 var config = PanelTypeConfiguration.GetConfiguration(panelType);
 
-                // 4. Invia WHO_ARE_YOU e attendi WHO_AM_I
+                // 5. Invia WHO_ARE_YOU e attendi WHO_AM_I
                 WhoAmIResponse? whoAmIResponse = await SendWhoAreYouAsync(config, timeoutMs, cancellationToken).ConfigureAwait(false);
                 if (!whoAmIResponse.HasValue)
                 {
@@ -147,23 +168,23 @@ namespace Services
 
                 LogWhoAmIResponse(whoAmIResponse.Value);
 
-                // 5. Calcola indirizzo STEM
+                // 6. Calcola indirizzo STEM
                 uint stemAddress = CalculateStemAddress(panelType, boardNumber, useFinalMachineType);
                 LogStemAddress(stemAddress, useFinalMachineType);
 
-                // 6. Invia SET_ADDRESS
+                // 7. Invia SET_ADDRESS
                 bool setAddressResult = await SendSetAddressAsync(whoAmIResponse.Value.Uuid, stemAddress, timeoutMs, cancellationToken).ConfigureAwait(false);
                 if (!setAddressResult)
                 {
                     return CreateFailureResult("Errore invio SET_ADDRESS");
                 }
 
-                // 7. Aggiorna comunicazione per usare il nuovo indirizzo
+                // 8. Aggiorna comunicazione per usare il nuovo indirizzo
                 await Task.Delay(ProtocolConstants.DeviceReconfigurationDelayMs, cancellationToken).ConfigureAwait(false);
                 _communicationService.SetSenderRecipientIds(ProtocolConstants.ComputerSenderId, stemAddress);
                 _logger.LogInformation("RecipientId aggiornato a 0x{RecipientId:X8}", stemAddress);
 
-                // 8. Verifica indirizzo finale se richiesto
+                // 9. Verifica indirizzo finale se richiesto
                 if (useFinalMachineType)
                 {
                     bool verificationResult = await VerifyDeviceAddressAsync(config, stemAddress, whoAmIResponse.Value.Uuid, timeoutMs, cancellationToken).ConfigureAwait(false);
