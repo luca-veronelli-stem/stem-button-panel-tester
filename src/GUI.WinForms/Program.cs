@@ -57,10 +57,11 @@ namespace GUI.Windows
         [STAThread]
         static async Task Main()
         {
-            // Prepare base information and log path as early as possible
+            // Prepare base information and log path as early as possible.
+            // All runtime artifacts go under %LOCALAPPDATA%\Stem.ButtonPanel.Tester\
+            // so the shipped single-file .exe doesn't litter its own directory.
             string baseDir = AppContext.BaseDirectory;
-            string logsDir = Path.Combine(baseDir, "logs");
-            Directory.CreateDirectory(logsDir);
+            string logsDir = AppPaths.EnsureLogsDir();
             string logFile = Path.Combine(logsDir, $"startup_{DateTime.Now.ToString("yyyyMMdd_HHmmss", CultureInfo.InvariantCulture)}.log");
 
             // Create an early LoggerFactory that writes to console/debug/file so we can trace startup issues
@@ -93,31 +94,30 @@ namespace GUI.Windows
                 AppDomain.CurrentDomain.UnhandledException += (s, e) =>
                 {
                     logger.LogCritical(e.ExceptionObject as Exception, "Unhandled exception in AppDomain");
-                    TryWriteErrorFiles(Path.Combine(baseDir, "pcan-error.txt"), e.ExceptionObject, logger);
+                    TryWriteErrorFiles(Path.Combine(AppPaths.DataRoot, "pcan-error.txt"), e.ExceptionObject, logger);
                 };
 
                 TaskScheduler.UnobservedTaskException += (s, e) =>
                 {
                     logger.LogError(e.Exception, "Unobserved task exception");
-                    TryWriteErrorFiles(Path.Combine(baseDir, "pcan-error.txt"), e.Exception, logger);
+                    TryWriteErrorFiles(Path.Combine(AppPaths.DataRoot, "pcan-error.txt"), e.Exception, logger);
                 };
 
                 Application.ThreadException += (s, e) =>
                 {
                     logger.LogError(e.Exception, "UI thread exception");
-                    TryWriteErrorFiles(Path.Combine(baseDir, "pcan-error.txt"), e.Exception, logger);
+                    TryWriteErrorFiles(Path.Combine(AppPaths.DataRoot, "pcan-error.txt"), e.Exception, logger);
                 };
 
-                // Configuration (appsettings.json + Development/Production overrides + env vars).
-                // Production.json is gitignored — it carries the supplier API key
-                // until the secure credential path is reinstated (docs/STOPGAP_API_KEY.md).
-                IConfiguration configuration = new ConfigurationBuilder()
-                    .SetBasePath(baseDir)
-                    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-                    .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
-                    .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false)
-                    .AddEnvironmentVariables()
-                    .Build();
+                // Configuration order (lowest to highest precedence):
+                //   1. embedded appsettings.json (always present)
+                //   2. embedded appsettings.Development.json (if present at build time)
+                //   3. embedded appsettings.Production.json (if present at build time —
+                //      gitignored, carries the supplier API key per docs/STOPGAP_API_KEY.md)
+                //   4. %LOCALAPPDATA%\Stem.ButtonPanel.Tester\appsettings.json (optional
+                //      runtime override the supplier or operator can drop in)
+                //   5. environment variables (Dictionary__ApiKey, Dictionary__BaseUrl, ...)
+                IConfiguration configuration = LoadConfiguration(logger);
 
                 // Imposta il container di DI
                 var services = new ServiceCollection();
@@ -138,10 +138,9 @@ namespace GUI.Windows
 
                 // Imposta repositories
                 string excelFilePath;
-                // Prefer embedded resource only: extract and use embedded 'StemDictionaries.xlsx' from Resources.resx
-                string resourcesDir = Path.Combine(baseDir, "Resources");
-                Directory.CreateDirectory(resourcesDir);
-                string excelOutPath = Path.Combine(resourcesDir, "StemDictionaries.xlsx");
+                // Extract embedded 'StemDictionaries.xlsx' (Resources.resx) into the per-user
+                // data root so the shipped exe doesn't have to write next to itself.
+                string excelOutPath = Path.Combine(AppPaths.EnsureDataRoot(), "StemDictionaries.xlsx");
 
                 // Try ResourceManager first (key: "StemDictionaries"), then strongly-typed property
                 byte[]? excelBytes = null;
@@ -289,7 +288,7 @@ namespace GUI.Windows
                 // Also create a concise probe file to help remote debugging
                 try
                 {
-                    File.WriteAllText(Path.Combine(baseDir, "pcan-error.txt"), ex.ToString());
+                    File.WriteAllText(Path.Combine(AppPaths.DataRoot, "pcan-error.txt"), ex.ToString());
                 }
                 catch { }
 
@@ -300,6 +299,54 @@ namespace GUI.Windows
             {
                 logger.LogInformation("Application startup sequence completed (Main exit).");
             }
+        }
+
+        /// <summary>
+        /// Builds the IConfiguration from embedded JSON resources plus an optional
+        /// runtime override file under %LOCALAPPDATA%\Stem.ButtonPanel.Tester\
+        /// and process environment variables.
+        /// </summary>
+        private static IConfiguration LoadConfiguration(ILogger logger)
+        {
+            ConfigurationBuilder builder = new();
+            Assembly assembly = typeof(Program).Assembly;
+
+            // ConfigurationBuilder.AddJsonStream reads lazily during Build(), so the
+            // streams must stay open until then. Hold them in a list for disposal after.
+            List<Stream> openStreams = new();
+            void TryAddEmbedded(string resourceName)
+            {
+                Stream? stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream != null)
+                {
+                    builder.AddJsonStream(stream);
+                    openStreams.Add(stream);
+                    logger.LogInformation("Loaded embedded configuration: {Resource}", resourceName);
+                }
+            }
+
+            // Resource prefix is GUI.WinForms (project's root namespace, not the
+            // code's "GUI.Windows" namespace declaration).
+            TryAddEmbedded("GUI.WinForms.appsettings.json");
+            TryAddEmbedded("GUI.WinForms.appsettings.Development.json");
+            TryAddEmbedded("GUI.WinForms.appsettings.Production.json");
+
+            string overridePath = Path.Combine(AppPaths.DataRoot, "appsettings.json");
+            builder.AddJsonFile(overridePath, optional: true, reloadOnChange: false);
+            if (File.Exists(overridePath))
+            {
+                logger.LogInformation("Loaded runtime configuration override: {Path}", overridePath);
+            }
+
+            builder.AddEnvironmentVariables();
+            IConfiguration configuration = builder.Build();
+
+            foreach (Stream stream in openStreams)
+            {
+                stream.Dispose();
+            }
+
+            return configuration;
         }
 
         private static void GatherBasicEnvironmentProbe(string baseDir, string logFile, ILogger logger)
@@ -346,7 +393,7 @@ namespace GUI.Windows
                 }
                 catch (Exception ex) { sb.AppendLine("  (unable to enumerate process modules) " + ex.Message); }
 
-                string probePath = Path.Combine(baseDir, "pcan-probe.txt");
+                string probePath = Path.Combine(AppPaths.EnsureDataRoot(), "pcan-probe.txt");
                 File.WriteAllText(probePath, sb.ToString());
                 logger.LogInformation("Wrote basic environment probe to {ProbePath}", probePath);
             }
@@ -359,8 +406,7 @@ namespace GUI.Windows
         private static void PerformDetailedPcanProbes(ILogger logger)
         {
             string baseDir = AppContext.BaseDirectory;
-            string outDir = Path.Combine(baseDir, "logs");
-            Directory.CreateDirectory(outDir);
+            string outDir = AppPaths.EnsureLogsDir();
             var probeDetails = new StringBuilder();
             probeDetails.AppendLine($"Detailed PCAN probe: {DateTime.Now:O}");
 

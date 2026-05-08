@@ -4,6 +4,23 @@ All notable changes to ButtonPanelTester follow [Semantic Versioning](https://se
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-08
+
+First tagged release. Single-file self-contained Windows x64 build for handoff to the supplier.
+
+### Added
+
+- **Single-file release build.** `dotnet publish src/GUI.WinForms -c Release -r win-x64 --self-contained -p:PublishSingleFile=true` produces exactly one file (`GUI.WinForms.exe`, ~132 MB). PDB embedded into the exe; XML doc generation suppressed for the executable; `AllowedReferenceRelatedFileExtensions` strips `.pdb`/`.xml` of referenced projects from the publish folder. `appsettings.json` (and `appsettings.Production.json` when present) embedded as `EmbeddedResource` and read via `ConfigurationBuilder.AddJsonStream`.
+- **Per-user data root.** `AppPaths` (`src/GUI.WinForms/AppPaths.cs`) centralizes `%LOCALAPPDATA%\Stem.ButtonPanel.Tester\`. All file output (`logs\startup_*.log`, extracted `StemDictionaries.xlsx`, `pcan-probe.txt`, `pcan-error.txt`, `logs\pcan-detailed-probe.txt`) now lives there, matching the existing `JsonFileDictionaryCache` convention. The shipped exe writes nothing next to itself.
+- **Runtime configuration override.** Optional `%LOCALAPPDATA%\Stem.ButtonPanel.Tester\appsettings.json` is layered on top of the embedded JSON at startup, so an operator can adjust settings without rebuilding. Env-var overrides (`Dictionary__ApiKey`, `Dictionary__BaseUrl`, …) still win.
+- Release workflow (`.github/workflows/release.yml`) now publishes the correct project (`src/GUI.WinForms/GUI.WinForms.csproj`) and optionally materializes `appsettings.Production.json` from `DICTIONARY_API_KEY` / `DICTIONARY_BASE_URL` repo secrets so CI-built releases can ship with the supplier API key embedded. Both the bare exe and a zip are uploaded to the GitHub Release.
+
+### Fixed
+
+- **Baptism robustness for previously-addressed panels (#55).** `BaptizeService.BaptizeDeviceAsync` sends a virgin `WHO_ARE_YOU` (machine=`0xFF`, reset=1) before the colored request, settles 500 ms, then sends the actual baptism. Forces panels that were previously baptized to a different `machine_type` (and thus boot into `AAS_STAND_BY` per `AA_Slave_Init` in `AutoAddressSlave.c`) into `AAS_ANSWER_TO_MASTER` predictably; fixes the 19.78 s response window observed on a panel previously addressed to machine 10. Hardware-verified on the same dual-panel bus condition.
+- **`DictionaryService.RefreshAsync` `inFlight` race (#54).** Worker now clears `inFlight` before signaling the TCS instead of after (in a `finally`), so a sequential follow-up `RefreshAsync` can't silently re-receive the just-completed task. Closes the T080/T081 flake (#43).
+- **Reset panel to virgin AA state at every test end (#53).** `ButtonPanelTestService` finally-blocks call `IBaptizeService.ResetToVirginAddressAsync` (`WHO_ARE_YOU` machine=`0xFF`, reset=1) so the panel re-announces itself for auto-addressing on the next host (Eden, Optimus, R3L, …). Reset uses `CancellationToken.None` so it still runs after operator cancellation.
+
 ### Changed
 
 - ⚠️ **Dictionary — stopgap (credential + endpoint).** Triple bypass to ship a same-day API-backed build against the actual `stem-dictionaries-manager` deployment used by `stem-device-manager`: (1) DPAPI-backed credential store and first-run bootstrap step bypassed — API key is now read directly from `Dictionary:ApiKey` (override via env var `Dictionary__ApiKey`; supplier-specific value lives in gitignored `appsettings.Production.json`); (2) wire-level credential sent as `X-Api-Key` instead of `Authorization: Bearer`; (3) endpoint is `GET /api/dictionaries/{DictionaryId}/resolved` (default `DictionaryId = 2` — "Pulsantiere") instead of the speced `GET /v1/dictionary`, with the response mapped to a single-`PanelType` `ButtonPanelDictionary` client-side. `Variable.Scaling` is hardcoded to `1.0` because the server's wire shape doesn't carry that field — variables that should be scaled will display raw values. Violates FR-011a/b/c, the `panel_types` contract in `specs/001-dictionary-from-api/contracts/dictionary-api.md`, and Constitution Principle I (`CONFIGURATION` standard); waivers documented in [`docs/STOPGAP_API_KEY.md`](./docs/STOPGAP_API_KEY.md). `DpapiCredentialStore.cs` and the `IInstallationCredentialStore` F# contract are retained on disk so the re-secure follow-up is a recompose, not a re-implement.

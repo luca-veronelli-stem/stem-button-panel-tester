@@ -12,6 +12,10 @@
     <ApplicationIcon>Resources\Ztem.ico</ApplicationIcon>
     <!-- Forza architettura di riferimento -->
     <PlatformTarget>x64</PlatformTarget>
+    <!-- The GUI executable has no public XML doc consumers; suppress so the
+         publish output stays at exactly one file. Library projects keep
+         GenerateDocumentationFile=true via Directory.Build.props. -->
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
   </PropertyGroup>
 
   <!-- Publish settings for single-file self-contained executable -->
@@ -26,6 +30,13 @@
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <!-- Optional: disable compression to simplify extracting embedded resources at runtime -->
     <EnableCompressionInSingleFile>false</EnableCompressionInSingleFile>
+    <!-- Embed PDB inside the exe so we ship a single file (no loose .pdb next to it) -->
+    <DebugType>embedded</DebugType>
+    <!-- Suppress .pdb / .xml from referenced projects in the publish output. The
+         default includes both, which would litter the publish folder next to the
+         single exe. Setting to a sentinel that no project produces leaves only
+         the assemblies (which are then bundled into the single-file exe). -->
+    <AllowedReferenceRelatedFileExtensions>.no-extra-files</AllowedReferenceRelatedFileExtensions>
   </PropertyGroup>
 
   <ItemGroup>
@@ -49,15 +60,14 @@
   </ItemGroup>
 	
   <ItemGroup>
-    <Content Include="appsettings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="appsettings.Development.json" Condition="Exists('appsettings.Development.json')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Include="appsettings.Production.json" Condition="Exists('appsettings.Production.json')">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <!-- appsettings files are embedded into the assembly so the published single-file
+         .exe ships without loose JSON next to it. Production.json (gitignored, carries
+         the supplier API key per docs/STOPGAP_API_KEY.md) is only embedded when present
+         on the build machine. Runtime overrides can still be dropped at
+         %LOCALAPPDATA%\Stem.ButtonPanel.Tester\appsettings.json — see Program.cs. -->
+    <EmbeddedResource Include="appsettings.json" />
+    <EmbeddedResource Include="appsettings.Development.json" Condition="Exists('appsettings.Development.json')" />
+    <EmbeddedResource Include="appsettings.Production.json" Condition="Exists('appsettings.Production.json')" />
   </ItemGroup>
 
   <ItemGroup>

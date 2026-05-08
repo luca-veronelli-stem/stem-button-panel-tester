@@ -44,9 +44,29 @@ jobs:
       - name: Restore
         run: dotnet restore
 
-      - name: Publish (win-x64, self-contained)
+      # Optional: materialize appsettings.Production.json from a repo secret so the
+      # CI-built exe can ship with the supplier API key embedded. The file is
+      # gitignored — without DICTIONARY_API_KEY the publish still succeeds but the
+      # produced exe will not contain the production key (Dictionary feature will
+      # need an env-var or LocalAppData override at runtime).
+      - name: Materialize appsettings.Production.json
+        if: ${{ env.DICTIONARY_API_KEY != '' }}
+        env:
+          DICTIONARY_API_KEY: ${{ secrets.DICTIONARY_API_KEY }}
+          DICTIONARY_BASE_URL: ${{ secrets.DICTIONARY_BASE_URL }}
+        shell: pwsh
         run: |
-          dotnet publish src/ButtonPanelTester.GUI `
+          $payload = @{
+            Dictionary = @{
+              ApiKey = $env:DICTIONARY_API_KEY
+              BaseUrl = $env:DICTIONARY_BASE_URL
+            }
+          } | ConvertTo-Json -Depth 5
+          Set-Content -Path src/GUI.WinForms/appsettings.Production.json -Value $payload -Encoding utf8
+
+      - name: Publish (win-x64, self-contained, single file)
+        run: |
+          dotnet publish src/GUI.WinForms/GUI.WinForms.csproj `
             -c Release `
             -r win-x64 `
             --self-contained `
@@ -58,8 +78,14 @@ jobs:
         id: package
         shell: pwsh
         run: |
+          # The publish folder contains exactly one file (the bundled exe). Upload
+          # both the bare exe and a zipped version — the supplier wants the bare exe,
+          # the zip mirrors the prior release-asset naming convention.
+          $exe = "stem-button-panel-tester-${{ steps.version.outputs.tag }}-win-x64.exe"
           $zip = "stem-button-panel-tester-${{ steps.version.outputs.tag }}-win-x64.zip"
+          Copy-Item -Path publish/win-x64/GUI.WinForms.exe -Destination $exe
           Compress-Archive -Path publish/win-x64/* -DestinationPath $zip
+          "exe=$exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       - name: Extract changelog entry
@@ -83,4 +109,5 @@ jobs:
           tag_name: ${{ steps.version.outputs.tag }}
           body_path: release-notes.md
           files: |
+            ${{ steps.package.outputs.exe }}
             ${{ steps.package.outputs.zip }}
