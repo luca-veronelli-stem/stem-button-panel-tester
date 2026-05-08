@@ -30,7 +30,7 @@ internal sealed class HttpDictionaryClientHarness : IDisposable
         ApiOptions = new DictionaryApiOptions
         {
             BaseUrl = new Uri(Server.Url ?? throw new InvalidOperationException("WireMock did not start.")),
-            MajorVersion = "v1",
+            DictionaryId = 2,
             // Default test timeout is generous; tests that exercise the 5s production
             // budget pass an explicit short timeout.
             Timeout = timeout ?? TimeSpan.FromSeconds(30),

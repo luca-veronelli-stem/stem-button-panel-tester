@@ -40,7 +40,7 @@ public class DictionaryEndToEndTests
         var apiOptions = new DictionaryApiOptions
         {
             BaseUrl = new Uri(server.Url ?? throw new InvalidOperationException()),
-            MajorVersion = "v1",
+            DictionaryId = 2,
             Timeout = TimeSpan.FromSeconds(30),
         };
         var credentials = new FakeCredentialStore { ApiKey = FSharpValueOption<string>.ValueNone };
@@ -65,7 +65,7 @@ public class DictionaryEndToEndTests
         using var cacheHarness = new CacheHarness();
         using var server = WireMockServer.Start();
         server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
@@ -75,7 +75,7 @@ public class DictionaryEndToEndTests
         var apiOptions = new DictionaryApiOptions
         {
             BaseUrl = new Uri(server.Url ?? throw new InvalidOperationException()),
-            MajorVersion = "v1",
+            DictionaryId = 2,
             Timeout = TimeSpan.FromSeconds(30),
         };
         var credentials = new FakeCredentialStore();

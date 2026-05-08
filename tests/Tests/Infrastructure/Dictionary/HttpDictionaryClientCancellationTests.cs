@@ -13,7 +13,7 @@ public class HttpDictionaryClientCancellationTests
     {
         using var harness = new HttpDictionaryClientHarness(timeout: TimeSpan.FromSeconds(30));
         harness.Server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithDelay(TimeSpan.FromSeconds(10))

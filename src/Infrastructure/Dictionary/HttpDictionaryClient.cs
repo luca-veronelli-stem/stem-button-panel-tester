@@ -12,9 +12,15 @@ using Microsoft.Extensions.Options;
 using Microsoft.FSharp.Core;
 using Stem.ButtonPanel.Tester.Core.Dictionary;
 
-// Stopgap (see docs/STOPGAP_API_KEY.md): wire-level credential is sent as
-// X-Api-Key (matches the shared stem-dictionaries-manager deployment) instead
-// of the spec'd `Authorization: Bearer`. Re-secure tracked separately.
+// Stopgap (see docs/STOPGAP_API_KEY.md):
+//  - Wire-level credential is sent as X-Api-Key (matches the shared
+//    stem-dictionaries-manager deployment) instead of the spec'd
+//    `Authorization: Bearer`.
+//  - Endpoint is GET /api/dictionaries/{id}/resolved (matches the actual
+//    server surface) instead of the spec'd GET /v1/dictionary; the response
+//    is mapped to a single-PanelType ButtonPanelDictionary client-side.
+//  - Variable.Scaling defaults to 1.0 because the server's wire shape does
+//    not carry a scaling field; downstream consumers see raw values.
 
 namespace Infrastructure.Dictionary;
 
@@ -110,7 +116,11 @@ public sealed class HttpDictionaryClient : IDictionaryProvider
             $"{nameof(DictionaryApiOptions.BaseUrl)} is not configured. Validator should have caught this at startup.");
 
         string baseString = baseUrl.AbsoluteUri.EndsWith('/') ? baseUrl.AbsoluteUri : baseUrl.AbsoluteUri + "/";
-        return new Uri($"{baseString}{_options.MajorVersion}/dictionary");
+        return new Uri(string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "{0}api/dictionaries/{1}/resolved",
+            baseString,
+            _options.DictionaryId));
     }
 
     private async Task<DictionaryFetchResult> InterpretAsync(HttpResponseMessage response, CancellationToken ct)
@@ -165,31 +175,21 @@ public sealed class HttpDictionaryClient : IDictionaryProvider
                 FSharpOption<string>.Some("empty body"));
         }
 
-        if (dto.SchemaVersion != 1)
+        if (dto.Variables.Count == 0)
         {
-            _logger.LogWarning(
-                "Dictionary fetch failed: unsupported schema_version {SchemaVersion}.",
-                dto.SchemaVersion);
+            _logger.LogWarning("Dictionary fetch failed: malformed payload (empty variables).");
             return DictionaryFetchResult.NewFailed(
                 FetchFailureReason.MalformedPayload,
-                FSharpOption<string>.Some($"schema_version={dto.SchemaVersion}"));
+                FSharpOption<string>.Some("empty variables"));
         }
 
-        if (dto.PanelTypes.Count == 0)
-        {
-            _logger.LogWarning("Dictionary fetch failed: malformed payload (empty panel_types).");
-            return DictionaryFetchResult.NewFailed(
-                FetchFailureReason.MalformedPayload,
-                FSharpOption<string>.Some("empty panel_types"));
-        }
-
-        ButtonPanelDictionary domain = dto.ToDomain();
         DateTimeOffset fetchedAt = _clock.GetUtcNow();
+        ButtonPanelDictionary domain = dto.ToDomain(fetchedAt);
         _logger.LogInformation(
-            "Dictionary fetched: schema_version={SchemaVersion}, panel_types={Count}, generated_at={GeneratedAt:o}.",
-            dto.SchemaVersion,
-            dto.PanelTypes.Count,
-            dto.GeneratedAt);
+            "Dictionary fetched: id={DictionaryId}, name={DictionaryName}, variables={Count}.",
+            dto.Id,
+            dto.Name,
+            dto.Variables.Count);
 
         return DictionaryFetchResult.NewSuccess(domain, fetchedAt);
     }

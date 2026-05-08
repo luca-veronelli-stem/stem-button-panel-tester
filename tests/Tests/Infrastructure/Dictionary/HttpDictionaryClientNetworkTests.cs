@@ -29,7 +29,7 @@ public class HttpDictionaryClientNetworkTests
         var apiOptions = new DictionaryApiOptions
         {
             BaseUrl = new Uri($"http://127.0.0.1:{port}"),
-            MajorVersion = "v1",
+            DictionaryId = 2,
             Timeout = TimeSpan.FromSeconds(5),
         };
         using var httpClient = new HttpClient();

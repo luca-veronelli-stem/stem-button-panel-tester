@@ -17,7 +17,7 @@ public class HttpDictionaryClientServerErrorTests
     {
         using var harness = new HttpDictionaryClientHarness();
         harness.Server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(statusCode));
 
         DictionaryFetchResult result = await harness.Client.FetchAsync(CancellationToken.None);

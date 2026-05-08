@@ -13,7 +13,7 @@ public class HttpDictionaryClientAuthTests
     {
         using var harness = new HttpDictionaryClientHarness();
         harness.Server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(401)
                 .WithBody("""{"error":"unauthorized"}"""));
@@ -30,7 +30,7 @@ public class HttpDictionaryClientAuthTests
     {
         using var harness = new HttpDictionaryClientHarness();
         harness.Server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(401));
 
         await harness.Client.FetchAsync(CancellationToken.None);
@@ -47,7 +47,7 @@ public class HttpDictionaryClientAuthTests
         harness.Credentials.ApiKey = Microsoft.FSharp.Core.FSharpValueOption<string>.NewValueSome("rotated-key");
         harness.Server
             .Given(Request.Create()
-                .WithPath("/v1/dictionary")
+                .WithPath("/api/dictionaries/2/resolved")
                 .UsingGet()
                 .WithHeader("X-Api-Key", "rotated-key"))
             .RespondWith(Response.Create().WithStatusCode(401));
@@ -64,7 +64,7 @@ public class HttpDictionaryClientAuthTests
     {
         using var harness = new HttpDictionaryClientHarness();
         harness.Server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create().WithStatusCode(403));
 
         DictionaryFetchResult result = await harness.Client.FetchAsync(CancellationToken.None);

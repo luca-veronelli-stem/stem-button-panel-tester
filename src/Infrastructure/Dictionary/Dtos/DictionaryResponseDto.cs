@@ -7,72 +7,91 @@ using Stem.ButtonPanel.Tester.Core.Dictionary;
 namespace Infrastructure.Dictionary.Dtos;
 
 /// <summary>
-/// Wire DTO for <c>GET /v{n}/dictionary</c>. See
-/// <c>specs/001-dictionary-from-api/contracts/dictionary-api.md</c>.
+/// Wire DTO for <c>GET /api/dictionaries/{id}/resolved</c> on
+/// <c>stem-dictionaries-manager</c>. Response shape is camelCase with a flat
+/// list of resolved variables (standard with overrides + dictionary-specific).
 /// </summary>
+/// <remarks>
+/// Stopgap shape (see <c>docs/STOPGAP_API_KEY.md</c>): the speced
+/// <c>GET /v1/dictionary</c> endpoint is not implemented server-side, so the
+/// runtime calls this endpoint instead and the client assembles a single-
+/// PanelType <see cref="ButtonPanelDictionary"/> from the response. The legacy
+/// <c>panel_types</c> tree shape from <c>contracts/dictionary-api.md</c> is
+/// the design intent and is tracked for re-instatement.
+/// </remarks>
 internal sealed class DictionaryResponseDto
-{
-    [JsonPropertyName("schema_version")]
-    [JsonRequired]
-    public int SchemaVersion { get; set; }
-
-    [JsonPropertyName("generated_at")]
-    [JsonRequired]
-    public DateTimeOffset GeneratedAt { get; set; }
-
-    [JsonPropertyName("panel_types")]
-    [JsonRequired]
-    public List<PanelTypeDto> PanelTypes { get; set; } = [];
-
-    public ButtonPanelDictionary ToDomain() => new(
-        SchemaVersion,
-        GeneratedAt,
-        PanelTypes.Select(p => p.ToDomain()).ToFSharpList());
-}
-
-internal sealed class PanelTypeDto
 {
     [JsonPropertyName("id")]
     [JsonRequired]
-    public string Id { get; set; } = string.Empty;
+    public int Id { get; set; }
 
-    [JsonPropertyName("display_name")]
+    [JsonPropertyName("name")]
     [JsonRequired]
-    public string DisplayName { get; set; } = string.Empty;
+    public string Name { get; set; } = string.Empty;
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
 
     [JsonPropertyName("variables")]
     [JsonRequired]
-    public List<VariableDto> Variables { get; set; } = [];
+    public List<ResolvedVariableDto> Variables { get; set; } = [];
 
-    public PanelType ToDomain() => new(
-        Id,
-        DisplayName,
-        Variables.Select(v => v.ToDomain()).ToFSharpList());
+    public ButtonPanelDictionary ToDomain(DateTimeOffset generatedAt)
+    {
+        var panelType = new PanelType(
+            id: Id.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            displayName: Name,
+            variables: Variables.Select(v => v.ToDomain()).ToFSharpList());
+
+        return new ButtonPanelDictionary(
+            schemaVersion: 1,
+            generatedAt: generatedAt,
+            panelTypes: new[] { panelType }.ToFSharpList());
+    }
 }
 
-internal sealed class VariableDto
+internal sealed class ResolvedVariableDto
 {
     [JsonPropertyName("name")]
     [JsonRequired]
     public string Name { get; set; } = string.Empty;
 
-    [JsonPropertyName("type")]
+    [JsonPropertyName("addressHigh")]
     [JsonRequired]
-    public string Type { get; set; } = string.Empty;
+    public int AddressHigh { get; set; }
 
-    [JsonPropertyName("address")]
+    [JsonPropertyName("addressLow")]
     [JsonRequired]
-    public int Address { get; set; }
+    public int AddressLow { get; set; }
 
-    [JsonPropertyName("scaling")]
+    [JsonPropertyName("dataType")]
     [JsonRequired]
-    public double Scaling { get; set; }
+    public string DataType { get; set; } = string.Empty;
+
+    [JsonPropertyName("access")]
+    public string? Access { get; set; }
+
+    [JsonPropertyName("description")]
+    public string? Description { get; set; }
+
+    [JsonPropertyName("min")]
+    public double? Min { get; set; }
+
+    [JsonPropertyName("max")]
+    public double? Max { get; set; }
 
     [JsonPropertyName("unit")]
-    [JsonRequired]
-    public string Unit { get; set; } = string.Empty;
+    public string? Unit { get; set; }
 
-    public Variable ToDomain() => new(Name, Type, Address, Scaling, Unit);
+    [JsonPropertyName("isStandard")]
+    public bool IsStandard { get; set; }
+
+    public Variable ToDomain() => new(
+        name: Name,
+        type: DataType,
+        address: (AddressHigh << 8) | AddressLow,
+        scaling: 1.0,
+        unit: Unit ?? string.Empty);
 }
 
 internal static class FSharpListExtensions
