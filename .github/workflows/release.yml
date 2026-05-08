@@ -64,13 +64,16 @@ jobs:
           } | ConvertTo-Json -Depth 5
           Set-Content -Path src/GUI.WinForms/appsettings.Production.json -Value $payload -Encoding utf8
 
-      # Heavy steps below are guarded on DICTIONARY_API_KEY / RELEASE_VIA_CI. Without
-      # one of those, the workflow exits successfully without producing or uploading
-      # anything — the operator does the release locally with the keyed exe via
-      # `gh release create`. ('secrets' and 'vars' contexts are only available in
-      # step-level if-expressions, never job-level.)
+      # Heavy steps below are guarded on RELEASE_VIA_CI=true (repo variable). Without
+      # it the workflow exits successfully without producing or uploading anything —
+      # the operator does the release locally with the keyed exe via
+      # `gh release create`. The 'secrets' context cannot be referenced in any if-
+      # expression (despite docs implying otherwise — GitHub rejects it at parse
+      # time with "Unrecognized named-value: 'secrets'"), so we use a plain repo
+      # variable instead. The DICTIONARY_API_KEY secret is still consumed normally
+      # by the Materialize step's run-block via env-injection.
       - name: Publish (win-x64, self-contained, single file)
-        if: ${{ vars.RELEASE_VIA_CI == 'true' || secrets.DICTIONARY_API_KEY != '' }}
+        if: ${{ vars.RELEASE_VIA_CI == 'true' }}
         run: |
           dotnet publish src/GUI.WinForms/GUI.WinForms.csproj `
             -c Release `
@@ -82,7 +85,7 @@ jobs:
 
       - name: Package
         id: package
-        if: ${{ vars.RELEASE_VIA_CI == 'true' || secrets.DICTIONARY_API_KEY != '' }}
+        if: ${{ vars.RELEASE_VIA_CI == 'true' }}
         shell: pwsh
         run: |
           # The publish folder contains exactly one file (the bundled exe). Upload
@@ -97,7 +100,7 @@ jobs:
 
       - name: Extract changelog entry
         id: changelog
-        if: ${{ vars.RELEASE_VIA_CI == 'true' || secrets.DICTIONARY_API_KEY != '' }}
+        if: ${{ vars.RELEASE_VIA_CI == 'true' }}
         shell: pwsh
         run: |
           $version = '${{ steps.version.outputs.version }}'
@@ -112,7 +115,7 @@ jobs:
           }
 
       - name: Create GitHub Release
-        if: ${{ vars.RELEASE_VIA_CI == 'true' || secrets.DICTIONARY_API_KEY != '' }}
+        if: ${{ vars.RELEASE_VIA_CI == 'true' }}
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
