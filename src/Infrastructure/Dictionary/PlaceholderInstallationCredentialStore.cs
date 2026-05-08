@@ -7,12 +7,18 @@ using Stem.ButtonPanel.Tester.Core.Dictionary;
 namespace Infrastructure.Dictionary;
 
 /// <summary>
-/// US1-only stand-in for <see cref="IInstallationCredentialStore"/>. Returns a
-/// constant API key sourced from configuration so the live <c>HttpDictionaryClient</c>
-/// can be wired before the DPAPI store lands in US2 (T072).
+/// Plaintext-config-backed <see cref="IInstallationCredentialStore"/>. Returns
+/// the API key sourced from <c>Dictionary:ApiKey</c> (or env var
+/// <c>Dictionary__ApiKey</c>) so <c>HttpDictionaryClient</c> can authenticate
+/// without DPAPI.
 /// </summary>
 /// <remarks>
-/// Replaced by <c>DpapiCredentialStore</c> in PR #3 (US2). Do not extend.
+/// <para><b>Stopgap.</b> See <c>docs/STOPGAP_API_KEY.md</c>. Originally this
+/// class was a US1-only stand-in replaced by <c>DpapiCredentialStore</c> in
+/// US2; the DPAPI path was unwired in
+/// <c>feat/dictionary-api-key-config-stopgap</c> to ship a same-day
+/// API-backed dictionary build, and the placeholder is the runtime store
+/// again until the secure path is reinstated.</para>
 /// </remarks>
 public sealed class PlaceholderInstallationCredentialStore : IInstallationCredentialStore
 {

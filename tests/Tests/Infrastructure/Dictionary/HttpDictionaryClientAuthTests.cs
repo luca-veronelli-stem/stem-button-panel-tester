@@ -39,7 +39,7 @@ public class HttpDictionaryClientAuthTests
     }
 
     [Fact]
-    public async Task FetchAsync_With401_SentBearerOnFirstAttempt()
+    public async Task FetchAsync_With401_SentXApiKeyOnFirstAttempt()
     {
         // Same matcher trick as the happy-path test: if the header is wrong, the
         // stub doesn't match and we never get the 401 we're asking for.
@@ -49,12 +49,12 @@ public class HttpDictionaryClientAuthTests
             .Given(Request.Create()
                 .WithPath("/v1/dictionary")
                 .UsingGet()
-                .WithHeader("Authorization", "Bearer rotated-key"))
+                .WithHeader("X-Api-Key", "rotated-key"))
             .RespondWith(Response.Create().WithStatusCode(401));
 
         DictionaryFetchResult result = await harness.Client.FetchAsync(CancellationToken.None);
 
-        Assert.True(result.IsFailed, "stub did not match — Authorization header likely wrong.");
+        Assert.True(result.IsFailed, "stub did not match — X-Api-Key header likely wrong.");
         Assert.Equal(FetchFailureReason.Unauthorized, ((DictionaryFetchResult.Failed)result).Reason);
         Assert.Single(harness.Server.LogEntries);
     }

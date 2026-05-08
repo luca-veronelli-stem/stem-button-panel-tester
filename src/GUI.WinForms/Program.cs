@@ -108,11 +108,14 @@ namespace GUI.Windows
                     TryWriteErrorFiles(Path.Combine(baseDir, "pcan-error.txt"), e.Exception, logger);
                 };
 
-                // Configuration (appsettings.json + Development overrides + env vars).
+                // Configuration (appsettings.json + Development/Production overrides + env vars).
+                // Production.json is gitignored — it carries the supplier API key
+                // until the secure credential path is reinstated (docs/STOPGAP_API_KEY.md).
                 IConfiguration configuration = new ConfigurationBuilder()
                     .SetBasePath(baseDir)
                     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
                     .AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: false)
+                    .AddJsonFile("appsettings.Production.json", optional: true, reloadOnChange: false)
                     .AddEnvironmentVariables()
                     .Build();
 
@@ -250,15 +253,10 @@ namespace GUI.Windows
                 await using ServiceProvider serviceProvider = services.BuildServiceProvider();
                 logger.LogInformation("ServiceProvider built successfully.");
 
-                // Bootstrap DPAPI credential (no-op if already provisioned).
-                if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-                {
-                    DictionaryCredentialBootstrap? bootstrap = serviceProvider.GetService<DictionaryCredentialBootstrap>();
-                    if (bootstrap is not null)
-                    {
-                        await bootstrap.EnsureAsync(CancellationToken.None).ConfigureAwait(false);
-                    }
-                }
+                // Stopgap (see docs/STOPGAP_API_KEY.md): API key is read directly
+                // from configuration by PlaceholderInstallationCredentialStore;
+                // the DPAPI bootstrap step is removed until the secure path is
+                // reinstated.
 
                 // Initial dictionary fetch (live → cache fallback). The result
                 // is held inside the singleton DictionaryService and consumed
