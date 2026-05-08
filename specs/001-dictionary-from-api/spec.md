@@ -9,17 +9,27 @@
 
 ### Session 2026-05-08 — stopgap downgrade ⚠️
 
-- **Decision**: ship a same-day API-backed build using the `stem-device-manager`
-  pattern (plaintext API key in configuration, sent on the wire as `X-Api-Key`)
-  instead of the spec'd DPAPI-backed per-Installation credential. Implemented
-  on `feat/dictionary-api-key-config-stopgap`.
-- **Spec parts deliberately violated**: FR-011a (no plaintext credential on
-  disk), FR-011b (no manual supplier configuration step), FR-011c
-  (per-Installation revocation, no cross-install blast radius), and Constitution
-  Principle I via the `CONFIGURATION` standard's "secret never in config".
+- **Decision**: ship a same-day API-backed build by adopting the
+  `stem-device-manager` pattern (plaintext API key in configuration; auth
+  header `X-Api-Key`) AND mapping onto the existing
+  `stem-dictionaries-manager` endpoint surface (`/api/dictionaries/{id}/resolved`)
+  rather than the speced `/v1/dictionary` endpoint that the server does not
+  implement. Implemented on `feat/dictionary-api-key-config-stopgap`.
+- **Spec parts deliberately violated**:
+  - FR-011a (no plaintext credential on disk),
+  - FR-011b (no manual supplier configuration step),
+  - FR-011c (per-Installation revocation, no cross-install blast radius),
+  - Constitution Principle I via the `CONFIGURATION` standard's "secret never
+    in config",
+  - the `panel_types`-tree contract documented in
+    [`contracts/dictionary-api.md`](./contracts/dictionary-api.md) (replaced
+    at runtime by a single-PanelType mapping over `DictionaryResolvedDto`),
+  - per-variable `scaling` (hardcoded to `1.0` because the server's wire
+    shape does not carry it).
 - **Spec parts preserved**: the wire-level retry/log behaviour from FR-011d/e/f
   (401 → cache fallback, no retry, distinct log level) and the entire
-  cache-fallback story from US2.
+  cache-fallback story from US2 (the cache envelope schema is independent
+  of the wire shape).
 - **Scope**: this build only. The DPAPI store, the `IInstallationCredentialStore`
   F# contract, and the DPAPI tests are retained on disk so re-securing is a
   recompose, not a re-implement.
