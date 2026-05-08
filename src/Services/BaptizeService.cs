@@ -65,6 +65,50 @@ namespace Services
             return await BaptizeDeviceAsync(panelType, forceLastByteToFF ? (byte)0xFF : boardNumber, timeoutMs, cancellationToken, forceLastByteToFF).ConfigureAwait(false);
         }
 
+        public async Task<bool> ResetToVirginAddressAsync(
+            int timeoutMs = ProtocolConstants.DefaultTimeoutMs,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("=== RESET TO VIRGIN (WHO_ARE_YOU machine=0xFF, reset=1) ===");
+
+            // Reach the panel via the AA listen ID (0x1FFFFFFF) — this is the same path the
+            // baptize/reassign flow uses and works for both virgin and previously-baptized panels.
+            ConfigureVirginPanelCommunication();
+
+            // MachineType=0xFF is the key: AA_Slave_WhoAreYouReceived writes Data.IdMachineType
+            // straight into EEPROM->IDMachineType, and AA_Slave_Init only enters AAS_STARTUP
+            // (the state in which the panel announces itself for auto-addressing) when
+            // IDMachineType==0xFF || IDBoardNumber==0xFF.
+            byte[] payload = PayloadBuilder.BuildWhoAreYouPayload(
+                ProtocolConstants.VirginMachineType,
+                ProtocolConstants.PanelFirmwareType,
+                ProtocolConstants.ResetAddressFlag);
+
+            // waitAnswer=false: the panel doesn't synchronously reply with WHO_AM_I. Its main
+            // task starts broadcasting WHO_I_AM only after a UUID-derived delay (up to ~4s),
+            // which would slow every test-end. The CAN-level write completing is sufficient
+            // confirmation that the firmware ran the handler and flagged the EEPROM dirty.
+            Result<byte[]> result = await _communicationService.SendCommandAsync(
+                ProtocolConstants.CMD_WHO_ARE_YOU,
+                payload,
+                waitAnswer: false,
+                timeoutMs: timeoutMs,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+
+            if (!result.IsSuccess)
+            {
+                _logger.LogWarning("Failed to send virgin reset WHO_ARE_YOU: {Error}", result.Error);
+                return false;
+            }
+
+            // Give the firmware time to commit EEPROM (UpdateEEPROM flag is consumed in its
+            // main loop, not synchronously inside the handler).
+            await Task.Delay(ProtocolConstants.DeviceReconfigurationDelayMs, cancellationToken).ConfigureAwait(false);
+
+            _logger.LogInformation("Virgin reset sent: panel EEPROM->IDMachineType=0xFF, AAS_ANSWER_TO_MASTER state expected.");
+            return true;
+        }
+
         /// <summary>
         /// Esegue il battezzamento del dispositivo inviando WHO_ARE_YOU e attendendo WHO_AM_I.
         /// </summary>

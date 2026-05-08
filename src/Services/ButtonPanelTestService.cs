@@ -239,12 +239,6 @@ namespace Services
                     results.Add(buzzerResult);
                 }
 
-                // Reassign finale se tutti i test sono passati
-                if (results.All(r => r.Passed && !r.Interrupted))
-                {
-                    await PerformFinalReassignAsync(panelType, cancellationToken).ConfigureAwait(false);
-                }
-
                 return results;
             }
             catch (OperationCanceledException)
@@ -265,6 +259,9 @@ namespace Services
                 {
                     _stateMachine.Reset();
                 }
+
+                // Reset panel to virgin so the next host machine handles auto-addressing.
+                await ResetPanelToVirginAsync().ConfigureAwait(false);
 
                 // Disconnetti il canale CAN al termine del test
                 await DisconnectCommunicationAsync().ConfigureAwait(false);
@@ -316,6 +313,9 @@ namespace Services
                 {
                     _stateMachine.Reset();
                 }
+
+                // Reset panel to virgin so the next host machine handles auto-addressing.
+                await ResetPanelToVirginAsync().ConfigureAwait(false);
 
                 // Disconnetti il canale CAN al termine del test
                 await DisconnectCommunicationAsync().ConfigureAwait(false);
@@ -371,6 +371,9 @@ namespace Services
                     _stateMachine.Reset();
                 }
 
+                // Reset panel to virgin so the next host machine handles auto-addressing.
+                await ResetPanelToVirginAsync().ConfigureAwait(false);
+
                 // Disconnetti il canale CAN al termine del test
                 await DisconnectCommunicationAsync().ConfigureAwait(false);
             }
@@ -419,6 +422,9 @@ namespace Services
                 {
                     _stateMachine.Reset();
                 }
+
+                // Reset panel to virgin so the next host machine handles auto-addressing.
+                await ResetPanelToVirginAsync().ConfigureAwait(false);
 
                 // Disconnetti il canale CAN al termine del test
                 await DisconnectCommunicationAsync().ConfigureAwait(false);
@@ -749,15 +755,38 @@ namespace Services
             }
         }
 
-        private async Task PerformFinalReassignAsync(ButtonPanelType panelType, CancellationToken cancellationToken)
+        /// <summary>
+        /// Returns the currently-tested panel to a virgin auto-addressing state at the end of
+        /// each test, so the next host machine (Eden, Optimus, R3L, ...) re-assigns its STEM
+        /// address through auto-addressing. Skipped if communication has been lost.
+        /// </summary>
+        private async Task ResetPanelToVirginAsync()
         {
+            if (_communicationLostNotified || !_communicationService.IsChannelConnected())
+            {
+                _logger?.LogDebug("Skipping virgin reset: CAN channel not available.");
+                return;
+            }
+
             try
             {
-                BaptizeResult reassign = await ReassignAddressAsync(panelType, ProtocolConstants.DefaultTimeoutMs, cancellationToken, forceLastByteToFF: true).ConfigureAwait(false);
+                // Use CancellationToken.None: the test's token may already be cancelled
+                // (operator interrupted), but we still want to leave the panel in virgin state.
+                bool ok = await _baptizeService.ResetToVirginAddressAsync(
+                    ProtocolConstants.DefaultTimeoutMs,
+                    CancellationToken.None).ConfigureAwait(false);
+
+                if (ok)
+                {
+                    // After WHO_ARE_YOU+reset, the panel's SP_Address becomes 0xFFFFFFFF until a
+                    // fresh host re-addresses it. Drop the cached recipient so we don't talk to
+                    // a stale address if anything else fires before disconnect.
+                    _lastRecipientId = null;
+                }
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Log silently, don't fail the test
+                _logger?.LogWarning(ex, "Virgin reset failed; panel may retain its tester address.");
             }
         }
 
