@@ -7,6 +7,25 @@
 
 ## Clarifications
 
+### Session 2026-05-08 — stopgap downgrade ⚠️
+
+- **Decision**: ship a same-day API-backed build using the `stem-device-manager`
+  pattern (plaintext API key in configuration, sent on the wire as `X-Api-Key`)
+  instead of the spec'd DPAPI-backed per-Installation credential. Implemented
+  on `feat/dictionary-api-key-config-stopgap`.
+- **Spec parts deliberately violated**: FR-011a (no plaintext credential on
+  disk), FR-011b (no manual supplier configuration step), FR-011c
+  (per-Installation revocation, no cross-install blast radius), and Constitution
+  Principle I via the `CONFIGURATION` standard's "secret never in config".
+- **Spec parts preserved**: the wire-level retry/log behaviour from FR-011d/e/f
+  (401 → cache fallback, no retry, distinct log level) and the entire
+  cache-fallback story from US2.
+- **Scope**: this build only. The DPAPI store, the `IInstallationCredentialStore`
+  F# contract, and the DPAPI tests are retained on disk so re-securing is a
+  recompose, not a re-implement.
+- **Tracking**: [`docs/STOPGAP_API_KEY.md`](../../docs/STOPGAP_API_KEY.md) for
+  the full waiver and re-secure plan; follow-up issue linked from there.
+
 ### Session 2026-05-06
 
 - Q: Auth mechanism — API key, OAuth, mutual TLS, or same-as-`stem-device-manager`? → A: **API key**, but stored securely (not plaintext as in `stem-device-manager`'s current `appsettings.json` approach). Spec captures the security posture (encrypted-at-rest, no manual supplier setup, per-installation revocable). Concrete mechanism — bootstrap-exchange vs per-supplier installer + DPAPI — deferred to `/speckit-plan`.

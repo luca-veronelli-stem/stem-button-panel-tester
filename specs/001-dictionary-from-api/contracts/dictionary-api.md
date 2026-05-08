@@ -11,11 +11,19 @@ This is the contract the `HttpDictionaryClient` codes against. Tests in `tests/T
 ```
 GET /v1/dictionary
 Host:          <DictionaryApiOptions.BaseUrl>
-Authorization: Bearer <api-key>
+X-Api-Key:     <api-key>
 Accept:        application/json
 ```
 
-The host and path major-version segment (`/v1/`) come from `DictionaryApiOptions`. The API key is fetched from `IInstallationCredentialStore.GetApiKeyAsync` and is the per-Installation credential per FR-011 + FR-011a-f.
+The host and path major-version segment (`/v1/`) come from `DictionaryApiOptions`. The API key is fetched from `IInstallationCredentialStore.GetApiKeyAsync`.
+
+> **Stopgap.** As of `feat/dictionary-api-key-config-stopgap` (2026-05-08) the
+> wire-level credential is sent as `X-Api-Key` (was: `Authorization: Bearer
+> <api-key>`) to match the shared `stem-dictionaries-manager` deployment used
+> by `stem-device-manager`, and the API key is sourced from configuration
+> rather than a per-Installation DPAPI store. The original Bearer + per-
+> Installation contract from FR-011 + FR-011a-f is the design intent and is
+> tracked for re-instatement in [`docs/STOPGAP_API_KEY.md`](../../../docs/STOPGAP_API_KEY.md).
 
 ## Success response — `200 OK`
 
