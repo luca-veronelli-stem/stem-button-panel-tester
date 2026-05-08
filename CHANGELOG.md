@@ -4,6 +4,10 @@ All notable changes to ButtonPanelTester follow [Semantic Versioning](https://se
 
 ## [Unreleased]
 
+### Changed
+
+- ⚠️ **Dictionary credential — stopgap downgrade.** Bypassed the DPAPI-backed credential store and the first-run bootstrap step. The API key is now read directly from `Dictionary:ApiKey` (override via env var `Dictionary__ApiKey`; supplier-specific value lives in gitignored `appsettings.Production.json`) and sent on the wire as `X-Api-Key` to match the shared `stem-dictionaries-manager` deployment used by `stem-device-manager`. Violates FR-011a/b/c and Constitution Principle I (`CONFIGURATION` standard); waivers documented in [`docs/STOPGAP_API_KEY.md`](./docs/STOPGAP_API_KEY.md). `DpapiCredentialStore.cs` and the `IInstallationCredentialStore` F# contract are retained on disk so the re-secure follow-up is a recompose, not a re-implement.
+
 ### Added
 
 - **Dictionary-from-API (`feat/001-dictionary-from-api`)** — replace the embedded Excel dictionary with a live fetch from `stem-dictionaries-manager` plus an at-rest JSON cache fallback for offline / unreachable-API operation. New top-of-form indicator shows *live*, *cached (offline)*, *cached (credential problem)*, *cached (other)*; a Refresh button manually re-fetches without restarting. DPAPI-backed per-installation API key (per FR-011 family). Cross-link: `stem-dictionaries-manager#1` (server-side `/register` bootstrap, deferred per R-1), `stem-device-manager#94` (companion credential migration).
