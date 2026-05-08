@@ -69,6 +69,24 @@ namespace Core.Interfaces.Services
             int timeoutMs = 5000,
             CancellationToken cancellationToken = default,
             bool forceLastByteToFF = false);
+
+        /// <summary>
+        /// Returns the currently-connected panel to a fully virgin auto-addressing state.
+        /// Sends WHO_ARE_YOU with MachineType=0xFF and ResetAddressFlag=1: the panel firmware
+        /// (AutoAddressSlave.c) writes 0xFF into EEPROM->IDMachineType, sets its STEM address
+        /// to broadcast (0xFFFFFFFF), and enters AAS_ANSWER_TO_MASTER so it re-announces itself.
+        /// On the next boot, AA_Slave_Init sees IDMachineType==0xFF and starts AAS_STARTUP — at
+        /// which point the next host (Eden, Optimus, R3L, ...) auto-addresses the panel with a
+        /// fresh STEM address.
+        /// SET_ADDRESS to 0x1FFFFFFF does *not* achieve this: the firmware retains its existing
+        /// IDMachineType in EEPROM and stays in AAS_STAND_BY, so a fresh host never sees the panel.
+        /// </summary>
+        /// <param name="timeoutMs">Send timeout in milliseconds.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
+        /// <returns><c>true</c> if WHO_ARE_YOU was sent successfully; <c>false</c> otherwise.</returns>
+        Task<bool> ResetToVirginAddressAsync(
+            int timeoutMs = 5000,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

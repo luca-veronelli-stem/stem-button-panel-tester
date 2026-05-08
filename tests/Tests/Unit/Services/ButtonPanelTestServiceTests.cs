@@ -339,6 +339,72 @@ namespace Tests.Unit.Services
             Assert.False(result.Passed);
         }
 
+        [Fact]
+        public async Task TestButtonsAsync_ResetsPanelToVirginOnEnd()
+        {
+            // Arrange
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
+
+            SetupRepositoryMocks();
+            SetupCommunicationMocks();
+
+            _mockBaptizeService.Setup(b => b.ResetToVirginAddressAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            using var cts = new CancellationTokenSource();
+            Task userPrompt(string _) { cts.Cancel(); return Task.CompletedTask; }
+
+            var sut = new ButtonPanelTestService(
+                _mockCommunicationService.Object,
+                _mockBaptizeService.Object,
+                _mockProtocolRepository.Object,
+                null,
+                TimeSpan.FromMilliseconds(100));
+
+            // Act: run a test that interrupts immediately.
+            _ = await sut.TestButtonsAsync(panelType, userPrompt, null, null, cts.Token);
+
+            // Assert: virgin reset must run in the finally regardless of outcome.
+            _mockBaptizeService.Verify(
+                b => b.ResetToVirginAddressAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task TestButtonsAsync_SkipsResetWhenChannelDisconnected()
+        {
+            // Arrange: channel reports disconnected, so the reset must be skipped.
+            ButtonPanelType panelType = ButtonPanelType.DIS0023789;
+
+            SetupRepositoryMocks();
+            SetupCommunicationMocks();
+            _mockCommunicationService.Setup(comm => comm.IsChannelConnected()).Returns(false);
+
+            using var cts = new CancellationTokenSource();
+            Task userPrompt(string _) { cts.Cancel(); return Task.CompletedTask; }
+
+            var sut = new ButtonPanelTestService(
+                _mockCommunicationService.Object,
+                _mockBaptizeService.Object,
+                _mockProtocolRepository.Object,
+                null,
+                TimeSpan.FromMilliseconds(100));
+
+            // Act
+            _ = await sut.TestButtonsAsync(panelType, userPrompt, null, null, cts.Token);
+
+            // Assert
+            _mockBaptizeService.Verify(
+                b => b.ResetToVirginAddressAsync(
+                    It.IsAny<int>(),
+                    It.IsAny<CancellationToken>()),
+                Times.Never);
+        }
+
         #endregion
 
         #region TestLedAsync Tests

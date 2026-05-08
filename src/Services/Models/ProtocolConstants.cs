@@ -41,6 +41,20 @@ namespace Services.Models
         public const byte ResetAddressFlag = 0x01;
         public const byte NoResetFlag = 0x00;
 
+        // Auto-addressing — virgin reset.
+        // The panel firmware (AutoAddressSlave.c, AA_Slave_WhoAreYouReceived) returns the panel
+        // to a virgin state when WHO_ARE_YOU is received with ResetAddressFlag=1 AND
+        // MachineType=0xFF: it stores 0xFF in EEPROM->IDMachineType, sets SP_Address=0xFFFFFFFF,
+        // and transitions to AAS_ANSWER_TO_MASTER so the panel re-announces itself for
+        // auto-addressing on the next host. On reboot, AA_Slave_Init then enters AAS_STARTUP
+        // (the IDMachineType==0xFF branch).
+        public const byte VirginMachineType = 0xFF;
+
+        // STEM firmware type for the button-panel family (matches MyData.Descriptor.IdFWType
+        // on the firmware side; the AA WHO_ARE_YOU handler filters incoming requests by this
+        // value, so it must be sent verbatim).
+        public const ushort PanelFirmwareType = 0x0004;
+
         // Timeouts
         public const int DefaultTimeoutMs = 15000;  // Aumentato per pulsantiere già battezzate che devono fare auto-reset (~5-6 sec)
         public const int VerificationTimeoutMs = 2000;
