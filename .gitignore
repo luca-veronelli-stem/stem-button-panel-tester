@@ -54,6 +54,10 @@ desktop.ini
 .env.local
 *.local.json
 
+# Stopgap: per-supplier API key lives in appsettings.Production.json (or env var
+# Dictionary__ApiKey). See Docs/STOPGAP_API_KEY.md.
+appsettings.Production.json
+
 # Editor backup
 *~
 *.swp

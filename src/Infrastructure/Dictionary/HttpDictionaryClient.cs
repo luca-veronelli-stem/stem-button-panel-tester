@@ -12,6 +12,10 @@ using Microsoft.Extensions.Options;
 using Microsoft.FSharp.Core;
 using Stem.ButtonPanel.Tester.Core.Dictionary;
 
+// Stopgap (see docs/STOPGAP_API_KEY.md): wire-level credential is sent as
+// X-Api-Key (matches the shared stem-dictionaries-manager deployment) instead
+// of the spec'd `Authorization: Bearer`. Re-secure tracked separately.
+
 namespace Infrastructure.Dictionary;
 
 /// <summary>
@@ -65,7 +69,7 @@ public sealed class HttpDictionaryClient : IDictionaryProvider
         Uri requestUri = BuildRequestUri();
 
         using var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", apiKey.Value);
+        request.Headers.Add("X-Api-Key", apiKey.Value);
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         using var timeoutCts = new CancellationTokenSource(_options.Timeout);

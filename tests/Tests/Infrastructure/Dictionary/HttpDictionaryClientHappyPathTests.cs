@@ -40,17 +40,18 @@ public class HttpDictionaryClientHappyPathTests
     }
 
     [Fact]
-    public async Task FetchAsync_With200Body_SendsBearerAuthorizationHeader()
+    public async Task FetchAsync_With200Body_SendsXApiKeyHeader()
     {
-        // Use WireMock's request matcher to verify the Authorization header arrived.
-        // If the header is wrong, the stub doesn't match and the client gets a 404 → MalformedPayload.
+        // Stopgap (see docs/STOPGAP_API_KEY.md): wire-level credential is X-Api-Key,
+        // not the spec'd `Authorization: Bearer`. WireMock's request matcher verifies
+        // the header arrived; a wrong header → no match → 404 → MalformedPayload.
         using var harness = new HttpDictionaryClientHarness();
         harness.Credentials.ApiKey = Microsoft.FSharp.Core.FSharpValueOption<string>.NewValueSome("token-xyz");
         harness.Server
             .Given(Request.Create()
                 .WithPath("/v1/dictionary")
                 .UsingGet()
-                .WithHeader("Authorization", "Bearer token-xyz"))
+                .WithHeader("X-Api-Key", "token-xyz"))
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithHeader("Content-Type", "application/json")
@@ -58,6 +59,6 @@ public class HttpDictionaryClientHappyPathTests
 
         DictionaryFetchResult result = await harness.Client.FetchAsync(CancellationToken.None);
 
-        Assert.True(result.IsSuccess, "stub did not match — Authorization header likely wrong.");
+        Assert.True(result.IsSuccess, "stub did not match — X-Api-Key header likely wrong.");
     }
 }
