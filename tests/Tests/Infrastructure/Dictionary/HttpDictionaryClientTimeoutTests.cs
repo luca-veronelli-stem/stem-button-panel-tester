@@ -16,7 +16,7 @@ public class HttpDictionaryClientTimeoutTests
         // Use a tight timeout so the test stays fast.
         using var harness = new HttpDictionaryClientHarness(timeout: TimeSpan.FromMilliseconds(200));
         harness.Server
-            .Given(Request.Create().WithPath("/v1/dictionary").UsingGet())
+            .Given(Request.Create().WithPath("/api/dictionaries/2/resolved").UsingGet())
             .RespondWith(Response.Create()
                 .WithStatusCode(200)
                 .WithDelay(TimeSpan.FromSeconds(2))

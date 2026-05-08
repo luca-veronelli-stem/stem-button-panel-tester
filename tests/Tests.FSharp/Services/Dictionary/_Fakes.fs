@@ -9,18 +9,18 @@ open Stem.ButtonPanel.Tester.Services.Dictionary
 
 let sampleDictionary : ButtonPanelDictionary = {
     SchemaVersion = 1
-    GeneratedAt = DateTimeOffset(2026, 5, 6, 11, 23, 45, TimeSpan.Zero)
+    GeneratedAt = DateTimeOffset(2026, 5, 8, 10, 0, 0, TimeSpan.Zero)
     PanelTypes = [
         {
-            Id = "BP-12-A"
-            DisplayName = "Button Panel 12 (variant A)"
+            Id = "2"
+            DisplayName = "Pulsantiere"
             Variables = [
                 {
-                    Name = "voltage_input"
-                    Type = "uint16"
-                    Address = 4097
-                    Scaling = 0.01
-                    Unit = "V"
+                    Name = "Foto Tasti"
+                    Type = "UInt8"
+                    Address = (128 <<< 8) ||| 0
+                    Scaling = 1.0
+                    Unit = ""
                 }
             ]
         }
