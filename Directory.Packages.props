@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <!-- F# runtime — pin to .NET 10 SDK's bundled version to avoid FsCheck pulling 5.0 -->
-    <PackageVersion Include="FSharp.Core" Version="10.1.201" />
+    <PackageVersion Include="FSharp.Core" Version="10.1.203" />
 
     <!-- Source generators / analyzers -->
     <PackageVersion Include="Microsoft.CodeAnalysis.BannedApiAnalyzers" Version="3.3.4" />
